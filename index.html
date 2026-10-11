@@ -6,358 +6,297 @@
 <title>Miku in 0.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Yomogi&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,800&display=swap">
 <style>
-/* Layout: game column on the left, Miku standing in her own lane on the right, over a faint piano-roll grid */
+/* Layout: three columns. Difficulty rail on the left, the stage under a spotlight beam in the middle,
+   clip settings with Miku standing on the right. One dark look on purpose. */
 :root {
-  --bg: #EDF4F4;
-  --lane: rgba(57, 197, 187, .055);
-  --grid: rgba(57, 197, 187, .13);
-  --panel: #FFFFFF;
-  --ink: #22292C;
-  --ink-soft: #5B696E;
-  --line: #D2DEDF;
-  --line-strong: #B4C6C8;
-  --key-bg: #E8F0F0;
-  --shadow: rgba(20, 70, 66, .45);
-
-  --miku: #39C5BB;
-  --miku-deep: #1F9C93;
-  --miku-tint: rgba(57, 197, 187, .14);
-  --pink: #E12885;
-  --pink-shadow: rgba(225, 40, 133, .28);
-
-  /* Project SEKAI-style difficulty colors */
-  --d-easy: #4CB81A;
-  --d-medium: #2A9FD6;
-  --d-hard: #E89300;
-  --d-expert: #E3405C;
-  --d-impossible: #A43BDB;
-
-  --good: #1F9E58;
-  --good-tint: rgba(31, 158, 88, .12);
-  --bad: #E3405C;
-  --bad-tint: rgba(227, 64, 92, .1);
-
-  /* the LCD readout is an instrument panel: same look in both themes */
-  --lcd-bg: #0E2A29;
-  --lcd-line: #1B4441;
-  --lcd-ink: #74F3E7;
-  --lcd-dim: #58A39D;
-
-  --scope-bg: #F4F9F9;
-  --scope-mid: #C9DADB;
-  --scope-wave: #39C5BB;
-  --scope-dim: #A9D9D5;
-
-  --f-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
-  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", system-ui, sans-serif;
-  --f-lcd: "DotGothic16", ui-monospace, "Consolas", monospace;
-  --f-hand: "Yomogi", "Segoe Print", "Comic Sans MS", cursive;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0F1618;
-    --lane: rgba(57, 197, 187, .035);
-    --grid: rgba(57, 197, 187, .09);
-    --panel: #172123;
-    --ink: #E4EFEF;
-    --ink-soft: #92A6AA;
-    --line: #273739;
-    --line-strong: #3A4F52;
-    --key-bg: #213032;
-    --shadow: rgba(0, 0, 0, .8);
-    --miku-deep: #5FD9CF;
-    --miku-tint: rgba(57, 197, 187, .16);
-    --pink-shadow: rgba(225, 40, 133, .45);
-    --good: #3CCB7E;
-    --good-tint: rgba(60, 203, 126, .13);
-    --bad: #FF6680;
-    --bad-tint: rgba(255, 102, 128, .12);
-    --scope-bg: #122022;
-    --scope-mid: #29403F;
-    --scope-dim: #2A6662;
-    color-scheme: dark;
-  }
+  --bg: #0A0B0B;
+  --beam: #101312;
+  --panel: #141716;
+  --panel-hi: #1B1F1E;
+  --field: #0F1211;
+  --line: #202624;
+  --line-hi: #2B3230;
+  --text: #E8EDEC;
+  --muted: #8A9491;
+  --dim: #535C59;
+  --accent: #39C5BB;
+  --accent-ink: #042220;
+  --accent-soft: rgba(57, 197, 187, .13);
+  --bad: #F06A6A;
+  --bad-soft: rgba(240, 106, 106, .12);
+  --d-easy: #39C5BB;
+  --d-medium: #F2C94C;
+  --d-hard: #F2994A;
+  --d-expert: #EF5B5B;
+  --d-impossible: #A879FF;
+  --d-all: #C9D1CF;
+  --f-ui: "Poppins", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html, body { min-height: 100%; }
 body {
   margin: 0;
-  color: var(--ink);
-  font-family: var(--f-body);
-  font-weight: 500;
-  font-size: 16px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--f-ui);
+  font-size: 14px;
   line-height: 1.5;
-  background-color: var(--bg);
-  background-image:
-    linear-gradient(to right, var(--grid) 1px, transparent 1px),
-    repeating-linear-gradient(to bottom, transparent 0 28px, var(--lane) 28px 56px);
-  background-size: 112px 100%, 100% 100%;
-  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
 }
-button { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* the spotlight beam behind the stage */
+.beam {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--beam);
+  clip-path: polygon(31% 0, 69% 0, 78% 100%, 22% 100%);
+  pointer-events: none;
+}
 
 .app {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(250px, 340px);
-  grid-template-areas: "game lane";
-  gap: 28px;
-  max-width: 1160px;
+  grid-template-columns: 190px minmax(0, 1fr) 220px;
+  gap: 40px;
+  max-width: 1480px;
   margin: 0 auto;
-  padding-inline: 24px;
-  min-height: 100%;
+  padding-inline: clamp(20px, 5vw, 80px);
+  min-height: 100vh;
 }
-.game {
-  grid-area: game;
+
+.label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rule { width: 100%; height: 1px; border: 0; background: var(--line); margin: 18px 0; }
+
+/* ---------- left rail ---------- */
+.side-left {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  padding-block: 22vh 40px;
+}
+.diff-list { display: flex; flex-direction: column; gap: 9px; }
+.diff-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  padding: 0 16px 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color .15s, color .15s;
+}
+.diff-item .n { font: 500 11px var(--f-mono); color: var(--dim); }
+.diff-item:hover { background: var(--panel-hi); }
+.diff-item[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.diff-item[aria-pressed="true"] .n { color: var(--accent); opacity: .7; }
+
+.reroll {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition: filter .15s;
+}
+.reroll:hover { filter: brightness(1.08); }
+.reroll svg { width: 14px; height: 14px; }
+
+/* ---------- center stage ---------- */
+.center {
   min-width: 0;
-  max-width: 760px;
-  padding-block: 32px 80px;
+  padding-block: 12vh 90px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-/* ---------- header ---------- */
-.top { display: flex; flex-direction: column; gap: 6px; }
-.eyebrow {
-  margin: 0;
-  font: 14px/1.2 var(--f-lcd);
-  letter-spacing: .16em;
-  color: var(--miku-deep);
-}
-h1 {
-  margin: 0;
-  font-family: var(--f-display);
-  font-weight: 400;
-  line-height: .9;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-}
-h1 .big {
-  font-size: clamp(76px, 12vw, 124px);
-  letter-spacing: -.03em;
-  color: var(--miku);
-  text-shadow: 5px 5px 0 var(--pink-shadow);
-}
-h1 .unit { font-size: clamp(40px, 6vw, 58px); }
-h1 .what {
-  font-size: clamp(20px, 2.6vw, 26px);
-  color: var(--ink-soft);
-  line-height: 1.1;
-  max-width: 11ch;
-}
-.sub { margin: 0; font-size: 17px; color: var(--ink-soft); max-width: 46ch; }
-
-/* ---------- difficulty ---------- */
-.diffs { display: flex; flex-wrap: wrap; gap: 8px; }
-.diff {
-  --c: var(--d-easy);
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 14px 9px 12px;
-  border-radius: 999px;
-  border: 2px solid var(--line);
-  background: var(--panel);
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color .15s, background-color .15s, transform .15s;
+  gap: 22px;
 }
-.diff::before {
-  content: "";
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: var(--c);
-  flex: none;
-}
-.diff .n { font: 13px/1 var(--f-lcd); color: var(--ink-soft); }
-.diff:hover { border-color: var(--c); transform: translateY(-1px); }
-.diff[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #fff; }
-.diff[aria-selected="true"]::before { background: #fff; }
-.diff[aria-selected="true"] .n { color: rgba(255, 255, 255, .85); }
-.diff[data-d="medium"] { --c: var(--d-medium); }
-.diff[data-d="hard"] { --c: var(--d-hard); }
-.diff[data-d="expert"] { --c: var(--d-expert); }
-.diff[data-d="impossible"] { --c: var(--d-impossible); }
-.diff[data-d="all"] { --c: var(--ink); }
-.diff[data-d="all"]::before {
-  background: conic-gradient(var(--d-easy) 0 20%, var(--d-medium) 0 40%, var(--d-hard) 0 60%, var(--d-expert) 0 80%, var(--d-impossible) 0);
-}
-.diff[data-d="all"][aria-selected="true"] { color: var(--bg); }
-.diff[data-d="all"][aria-selected="true"] .n { color: var(--bg); opacity: .8; }
+.wide { width: min(100%, 540px); }
+.narrow { width: min(100%, 400px); }
 
-/* ---------- stage ---------- */
-.stage {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 18px;
-  display: grid;
-  gap: 18px;
-  box-shadow: 0 22px 44px -32px var(--shadow);
+.brand {
+  margin: 0 0 4px;
+  font-size: clamp(46px, 5.4vw, 66px);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -.035em;
+  line-height: 1;
+  color: #1E2322;
+  text-align: center;
+  user-select: none;
 }
-.lcd {
+.brand span { color: #173634; }
+
+.stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--lcd-line);
-  border-radius: 12px;
+  border-block: 1px solid var(--line);
+}
+.stats div { padding: 10px 6px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.stats span { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.stats b { font: 600 16px/1.2 var(--f-mono); color: var(--text); font-variant-numeric: tabular-nums; }
+
+.pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pill {
+  --c: var(--d-easy);
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color .15s, color .15s;
+}
+.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
+.pill[aria-pressed="true"] { background: var(--c); color: #0A0B0B; }
+.pill.mini-reroll { --c: var(--text); display: none; align-items: center; gap: 6px; }
+.pill.mini-reroll svg { width: 13px; height: 13px; }
+[data-d="medium"] { --c: var(--d-medium); }
+[data-d="hard"] { --c: var(--d-hard); }
+[data-d="expert"] { --c: var(--d-expert); }
+[data-d="impossible"] { --c: var(--d-impossible); }
+[data-d="all"] { --c: var(--d-all); }
+
+.track { margin-top: 2px; }
+.bar {
+  position: relative;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--panel-hi);
   overflow: hidden;
 }
-.lcd div { background: var(--lcd-bg); padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
-.lcd span {
-  font-size: 11px;
-  line-height: 1.3;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--lcd-dim);
+.bar .unlocked {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent-soft);
+  box-shadow: inset -2px 0 0 var(--accent);
+  transition: width .35s ease;
 }
-.lcd b {
-  font: 400 22px/1.15 var(--f-lcd);
-  color: var(--lcd-ink);
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 10px rgba(116, 243, 231, .35);
+.bar .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--accent);
 }
+.bar .sep { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line-hi); }
+.bar-labels { position: relative; height: 18px; margin-top: 6px; font: 500 11px/18px var(--f-mono); }
+.bar-mark { position: absolute; top: 0; color: var(--accent); transform: translateX(-50%); white-space: nowrap; transition: left .35s ease; }
+.tries { position: absolute; right: 0; top: 0; color: var(--muted); }
 
 .deck {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  margin-top: 4px;
 }
+.play-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .play {
-  position: relative;
-  width: 124px; height: 124px;
+  width: 118px;
+  height: 118px;
+  border: 0;
   border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  color: #fff;
-  background: radial-gradient(circle at 34% 28%, #6DE6DC, var(--miku) 52%, #1F9C93);
-  box-shadow: 0 0 0 7px var(--miku-tint), 0 14px 26px -12px rgba(31, 156, 147, .8);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: transform .12s;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  transition: transform .15s ease, box-shadow .3s ease, background-color .2s;
 }
-.play:active { transform: scale(.96); }
-.play svg { width: 38px; height: 38px; margin-left: 5px; }
-.play .lbl { font: 14px/1 var(--f-lcd); letter-spacing: .04em; }
-.play[data-state="loading"] { cursor: progress; background: radial-gradient(circle at 34% 28%, #9FD9D4, #6FB9B3 60%, #4C9590); }
+.play:hover:not(:disabled) { transform: scale(1.03); box-shadow: 0 0 44px rgba(57, 197, 187, .28); }
+.play:active:not(:disabled) { transform: scale(.97); }
+.play svg { width: 44px; height: 44px; margin-left: 7px; }
+.play.on { box-shadow: 0 0 0 10px rgba(57, 197, 187, .13), 0 0 56px rgba(57, 197, 187, .4); }
+.play[data-state="loading"] { background: #17302E; cursor: progress; }
 .play[data-state="loading"] svg { display: none; }
 .play[data-state="loading"]::before {
   content: "";
-  width: 34px; height: 34px;
+  width: 30px; height: 30px;
   border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, .35);
-  border-top-color: #fff;
+  border: 3px solid rgba(57, 197, 187, .25);
+  border-top-color: var(--accent);
   animation: spin .8s linear infinite;
 }
-.play.on::after {
-  content: "";
-  position: absolute;
-  inset: -7px;
-  border-radius: 50%;
-  border: 3px solid var(--miku);
-  animation: ripple .7s ease-out forwards;
-  pointer-events: none;
-}
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes ripple { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.35); } }
+.status { min-height: 18px; font-size: 12px; font-weight: 600; color: var(--accent); text-align: center; }
+.status.bad { color: var(--bad); }
+.status.muted { color: var(--muted); }
+.len-now { padding-left: 18px; font: 600 18px var(--f-mono); color: var(--accent); }
 
-.scope-wrap {
-  position: relative;
-  height: 104px;
-  min-width: 0;
-  border-radius: 14px;
-  background: var(--scope-bg);
-  border: 1px solid var(--line);
-  overflow: hidden;
-}
-.scope-wrap canvas { display: block; width: 100%; height: 100%; }
-.scope-cap {
-  position: absolute;
-  left: 12px; top: 8px;
-  font-size: 11px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  pointer-events: none;
-}
-.scope-len {
-  position: absolute;
-  right: 12px; bottom: 8px;
-  font: 13px/1 var(--f-lcd);
-  color: var(--ink-soft);
-  pointer-events: none;
-}
-
-.hints { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.hints .k {
-  font-size: 12px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  margin-right: 4px;
-}
-.hint {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 7px 11px;
-  border-radius: 10px;
-  border: 1.5px dashed var(--line-strong);
-  background: transparent;
-  cursor: pointer;
-  font: 15px/1 var(--f-lcd);
-}
-.hint small { font: 700 12px/1 var(--f-body); color: var(--ink-soft); }
-.hint:hover:not(:disabled) { border-color: var(--miku); }
-.hint[aria-pressed="true"] { border-style: solid; border-color: var(--miku); background: var(--miku-tint); }
-.hint.used:not([aria-pressed="true"]) { opacity: .5; }
-.hint:disabled { cursor: not-allowed; opacity: .45; }
-
-/* ---------- typed guess + autocomplete ---------- */
-.guess { display: flex; flex-direction: column; gap: 10px; }
-.combo { position: relative; }
+.guess-row { display: flex; gap: 8px; margin-top: 6px; }
+.combo { position: relative; flex: 1; min-width: 0; }
 .field {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 58px;
-  padding: 0 16px;
-  border-radius: 16px;
-  border: 2px solid var(--line-strong);
-  background: var(--panel);
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line-hi);
+  border-radius: 9px;
+  background: var(--field);
   cursor: text;
   transition: border-color .15s, box-shadow .15s;
 }
-.field:focus-within { border-color: var(--miku); box-shadow: 0 0 0 4px var(--miku-tint); }
-.field svg { width: 20px; height: 20px; flex: none; color: var(--ink-soft); }
+.field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field svg { width: 15px; height: 15px; flex: none; color: var(--muted); }
 .field input {
   flex: 1;
   min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--ink);
-  font: 700 18px/1.2 var(--f-body);
+  font-size: 14px;
+  font-weight: 500;
 }
-.field input::placeholder { color: var(--ink-soft); font-weight: 500; }
+.field input::placeholder { color: var(--muted); }
 .field input:focus-visible { outline: none; }
-.field input:disabled { cursor: default; }
 .field.shake { animation: shake .36s ease-in-out; }
-@keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+.skip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--line-hi);
+  border-radius: 9px;
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color .15s, background-color .15s;
+}
+.skip:hover:not(:disabled) { border-color: var(--accent); }
+.skip:disabled { opacity: .4; cursor: default; }
+.skip svg { width: 13px; height: 13px; }
 
 .suggest {
   position: absolute;
@@ -367,224 +306,201 @@ h1 .what {
   margin: 0;
   padding: 6px;
   list-style: none;
-  max-height: min(330px, 52vh);
+  max-height: min(310px, 50vh);
   overflow-y: auto;
-  border-radius: 16px;
-  border: 2px solid var(--line-strong);
-  background: var(--panel);
-  box-shadow: 0 20px 44px -18px var(--shadow);
+  border: 1px solid var(--line-hi);
+  border-radius: 12px;
+  background: #171A19;
+  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, .8);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-hi) transparent;
 }
 .opt {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 1px 12px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 0 12px;
   align-items: center;
-  padding: 6px 8px;
-  border-radius: 10px;
+  padding: 6px;
+  border-radius: 8px;
   cursor: pointer;
 }
-.opt img {
-  grid-row: span 2;
-  width: 46px; height: 46px;
-  border-radius: 7px;
-  object-fit: cover;
-  background: var(--key-bg);
-}
-.opt .t { font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
-.opt .s { font-size: 13px; line-height: 1.3; color: var(--ink-soft); overflow-wrap: anywhere; }
-.opt[aria-selected="true"] { background: var(--miku-tint); }
-.suggest .empty { padding: 12px; color: var(--ink-soft); font-size: 14px; }
+.opt img { grid-row: span 2; width: 42px; height: 42px; border-radius: 6px; object-fit: cover; background: var(--panel-hi); }
+.opt .t { font-size: 14px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.opt .s { font-size: 12px; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+.opt[aria-selected="true"] { background: var(--accent-soft); }
+.suggest .empty { padding: 10px; color: var(--muted); font-size: 13px; }
 
-.guess-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-.tries { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); }
-.pips { display: inline-flex; gap: 4px; }
-.pips i { width: 10px; height: 10px; border-radius: 50%; background: var(--miku); }
-.pips i.gone { background: var(--line-strong); }
-.wrong-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.wrong-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: -8px; }
+.wrong-list:empty { display: none; }
 .wrong-chip {
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: var(--bad-tint);
+  background: var(--bad-soft);
   color: var(--bad);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   text-decoration: line-through;
 }
 
-/* ---------- reveal ---------- */
 .reveal {
+  width: min(100%, 460px);
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
-  gap: 16px 18px;
-  align-items: start;
-  padding: 16px;
-  border-radius: 20px;
-  border: 2px solid var(--good);
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   background: var(--panel);
   animation: rise .3s ease-out;
 }
-.reveal.miss { border-color: var(--bad); }
-@keyframes rise { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
-.art {
-  width: 116px; height: 116px;
-  border-radius: 12px;
-  object-fit: cover;
-  background: var(--key-bg);
-  display: block;
-}
-.meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.verdict { margin: 0; font: 15px/1.2 var(--f-lcd); letter-spacing: .06em; color: var(--good); }
-.miss .verdict { color: var(--bad); }
-.r-title { margin: 2px 0 0; font: 400 26px/1.15 var(--f-display); text-wrap: balance; overflow-wrap: anywhere; }
-.r-jp { margin: 0; font-size: 15px; color: var(--ink-soft); }
-.r-prod { margin: 4px 0 0; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.art { width: 76px; height: 76px; border-radius: 10px; object-fit: cover; background: var(--panel-hi); display: block; }
+.meta { min-width: 0; display: flex; flex-direction: column; }
+.verdict { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.reveal.miss .verdict { color: var(--bad); }
+.r-title { margin: 2px 0 0; font-size: 19px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.r-sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .chip {
-  font: 700 11px/1 var(--f-body);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  padding: 5px 8px;
+  padding: 2px 8px;
   border-radius: 999px;
-  color: #fff;
-  background: var(--c, var(--ink-soft));
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 15%, transparent);
 }
-.r-clip { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+.r-clip { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
 .r-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
-
-/* ---------- buttons ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 2px solid var(--line-strong);
-  background: var(--panel);
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 1.1;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
-  color: var(--ink);
-  cursor: pointer;
-  transition: border-color .12s, transform .12s;
+  transition: border-color .15s, filter .15s;
 }
-.btn:hover { border-color: var(--miku); transform: translateY(-1px); }
-.btn svg { width: 18px; height: 18px; flex: none; }
-.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.btn.reroll { border-color: var(--pink); color: var(--pink); }
-.btn.reroll:hover { background: var(--pink); color: #fff; }
-.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.keys { margin-left: auto; font-size: 13px; color: var(--ink-soft); }
-.keys kbd {
-  font: 12px/1 var(--f-lcd);
-  padding: 3px 6px;
-  border-radius: 6px;
-  border: 1px solid var(--line-strong);
-  background: var(--panel);
-}
-
-.stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 22px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--line-strong);
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-.stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
-.stats .note { flex-basis: 100%; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn svg { width: 14px; height: 14px; }
+.btn.primary { margin-left: auto; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
 
 .error {
-  padding: 16px;
-  border-radius: 16px;
-  border: 2px solid var(--bad);
-  background: var(--bad-tint);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(240, 106, 106, .35);
+  border-radius: 12px;
+  background: var(--bad-soft);
+  font-size: 13px;
 }
-.error p { margin: 0; flex: 1 1 260px; }
+.error p { margin: 0; flex: 1 1 220px; }
 
-/* ---------- Miku lane ---------- */
-.lane {
-  grid-area: lane;
+.fine { margin: 6px 0 0; font-size: 12px; color: var(--dim); text-align: center; line-height: 1.6; }
+.fine kbd { font: 500 11px var(--f-mono); padding: 1px 5px; border: 1px solid var(--line-hi); border-radius: 4px; color: var(--muted); }
+
+/* ---------- right rail ---------- */
+.side-right {
   position: sticky;
   top: 0;
+  align-self: start;
   height: 100vh;
-  height: 100dvh;
+  padding-top: 20vh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+}
+.lengths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.len-btn {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 42px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  transition: background-color .15s, color .15s;
+}
+.len-btn small { font-size: 9.5px; font-weight: 500; color: var(--dim); }
+.len-btn:hover:not(:disabled) { background: var(--panel-hi); color: var(--text); }
+.len-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.len-btn[aria-pressed="true"] small { color: var(--accent); opacity: .7; }
+.len-btn.used:not([aria-pressed="true"]) { opacity: .45; }
+.len-btn:disabled { cursor: default; opacity: .4; }
+
+.vol {
+  --v: 50%;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.vol::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--accent) var(--v), var(--line-hi) var(--v)); }
+.vol::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text); border: 3px solid var(--accent); }
+.vol::-moz-range-track { height: 4px; border-radius: 4px; background: var(--line-hi); }
+.vol::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
+.vol::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--text); border: 3px solid var(--accent); }
+
+.miku {
+  position: relative;
+  margin: auto 0 0 -90px;
+  display: flex;
+  justify-content: flex-end;
   pointer-events: none;
 }
-.bubble {
+.miku img {
   position: relative;
-  z-index: 2;
-  width: min(290px, 100%);
-  margin-bottom: -6px;
-  padding: 12px 16px;
-  border-radius: 18px;
-  border: 2px solid var(--ink);
-  background: var(--panel);
-  box-shadow: 4px 4px 0 var(--miku);
-  font: 18px/1.35 var(--f-hand);
-  color: var(--ink);
-  pointer-events: auto;
-}
-.bubble::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -11px;
-  width: 18px; height: 18px;
-  background: var(--panel);
-  border-right: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
-  transform: translateX(-50%) rotate(45deg);
-}
-.miku-wrap { width: 100%; display: flex; justify-content: center; }
-.miku {
+  z-index: 1;
   display: block;
-  width: 100%;
+  width: 310px;
   height: auto;
-  max-height: calc(100dvh - 130px);
+  max-width: none;
+  max-height: 50vh;
+  object-fit: contain;
+  object-position: bottom right;
   animation: float 6s ease-in-out infinite;
 }
-@keyframes float { 50% { transform: translateY(-7px); } }
-.lane.listening .miku { animation: hop .32s ease-out; }
-@keyframes hop { 40% { transform: translateY(-14px); } }
+.miku::after {
+  content: "";
+  position: absolute;
+  right: 70px;
+  bottom: 2px;
+  width: 150px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(57, 197, 187, .22), transparent);
+}
+.miku.hop img { animation: hop .5s ease-out; }
+@keyframes float { 50% { transform: translateY(-6px); } }
+@keyframes hop { 35% { transform: translateY(-18px); } 70% { transform: translateY(2px); } }
 
-.tail-l { transform-box: view-box; transform-origin: 114px 128px; animation: swayL 4.5s ease-in-out infinite; }
-.tail-r { transform-box: view-box; transform-origin: 286px 128px; animation: swayR 4.5s ease-in-out infinite; }
-.lane.listening .tail-l, .lane.listening .tail-r { animation-duration: .45s; }
-@keyframes swayL { 50% { transform: rotate(2.4deg); } }
-@keyframes swayR { 50% { transform: rotate(-2.4deg); } }
-
-.eyes-happy, .mouth-happy, .mouth-sad, .sweat { display: none; }
-.lane.happy .eyes-open, .lane.happy .mouth-idle { display: none; }
-.lane.happy .eyes-happy, .lane.happy .mouth-happy { display: inline; }
-.lane.sad .mouth-idle { display: none; }
-.lane.sad .mouth-sad, .lane.sad .sweat { display: inline; }
-
-/* ---------- corner tag + toast ---------- */
 .sissy {
   position: fixed;
-  right: 12px;
-  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   z-index: 50;
-  padding: 5px 11px 6px;
-  border-radius: 999px;
-  border: 1.5px solid var(--pink-shadow);
-  background: var(--panel);
-  font: 15px/1 var(--f-hand);
-  color: var(--pink);
-  transform: rotate(-4deg);
+  font-size: 12px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--dim);
   pointer-events: none;
 }
+.sissy b { color: var(--accent); font-style: normal; font-weight: 500; }
 .toast {
   position: fixed;
   left: 50%;
@@ -592,275 +508,156 @@ h1 .what {
   transform: translateX(-50%);
   z-index: 60;
   max-width: calc(100% - 32px);
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 14px;
+  padding: 9px 14px;
+  border: 1px solid var(--line-hi);
+  border-radius: 10px;
+  background: var(--panel-hi);
+  font-size: 13px;
 }
 
-/* ---------- responsive ---------- */
-@media (max-width: 880px) {
-  .app {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "lane" "game";
-    gap: 0;
-    padding-inline: 16px;
+/* ---------- smaller screens ---------- */
+@media (max-width: 1100px) {
+  .beam { clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%); }
+  .app { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .side-left { display: none; }
+  .pill.mini-reroll { display: inline-flex; }
+  .center { padding-block: 7vh 28px; }
+  .side-right {
+    position: static;
+    height: auto;
+    width: min(100%, 400px);
+    justify-self: center;
+    padding: 0 0 70px;
   }
-  .lane {
-    position: relative;
-    height: 190px;
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 10px;
-    overflow: hidden;
-  }
-  .bubble { flex: 1 1 auto; width: auto; max-width: 300px; margin: 0 0 56px; font-size: 16px; }
-  .bubble::after { left: auto; right: -11px; bottom: 22px; transform: rotate(-45deg); }
-  .miku-wrap { width: 150px; height: 182px; flex: none; overflow: hidden; align-items: flex-start; }
-  .miku { width: 150px; max-height: none; animation: none; }
-  .game { padding-block: 10px 80px; }
+  .miku { margin: 24px 0 0; justify-content: center; }
+  .miku::after { right: auto; left: 50%; transform: translateX(-50%); }
+  .miku img { width: 260px; max-height: none; }
 }
-@media (max-width: 560px) {
-  .deck { grid-template-columns: minmax(0, 1fr); justify-items: center; }
-  .scope-wrap { width: 100%; }
-  .lcd { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .reveal { grid-template-columns: 84px minmax(0, 1fr); }
-  .art { width: 84px; height: 84px; }
-  .r-title { font-size: 21px; }
-  .keys { display: none; }
+@media (max-width: 480px) {
+  .stats span { font-size: 9.5px; letter-spacing: .1em; }
+  .deck { grid-template-columns: 1fr auto 1fr; }
+  .play { width: 104px; height: 104px; }
+  .len-now { padding-left: 12px; font-size: 15px; }
+  .reveal { grid-template-columns: 60px minmax(0, 1fr); }
+  .art { width: 60px; height: 60px; }
+  .btn.primary { margin-left: 0; }
+}
+@media (pointer: coarse) {
+  .fine .keys { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .play[data-state="loading"]::before { border-top-color: rgba(255, 255, 255, .35); }
 }
 </style>
 </head>
 <body>
+<div class="beam" aria-hidden="true"></div>
+
 <div class="app">
-  <main class="game">
-    <header class="top">
-      <p class="eyebrow">VOCALOID SONG QUIZ ・ CV01</p>
-      <h1><span class="big">0.1</span><span class="unit">秒</span><span class="what">guess the song</span></h1>
-      <p class="sub">You get one tenth of a second of a Vocaloid song. Name it.</p>
-    </header>
+  <aside class="side-left" aria-label="Difficulty">
+    <p class="label">Difficulty</p>
+    <div class="diff-list" id="diffList"></div>
+    <hr class="rule">
+    <button class="reroll" id="reroll">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.3-4.9L4 8m0-4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"/></svg>
+      Reroll all
+    </button>
+  </aside>
 
-    <nav class="diffs" id="diffs" role="tablist" aria-label="Difficulty"></nav>
+  <main class="center">
+    <h1 class="brand">miku<span>0.1</span></h1>
 
-    <section class="stage" aria-label="Clip player">
-      <div class="lcd" aria-live="polite">
-        <div><span>Clip</span><b id="lcdClip">0.100s</b></div>
-        <div><span>Round</span><b id="lcdRound">001</b></div>
-        <div><span>Score</span><b id="lcdScore">00000</b></div>
-        <div><span>Streak</span><b id="lcdStreak">00</b></div>
-      </div>
-      <div class="deck">
-        <button class="play" id="play" data-state="loading" aria-label="Play clip">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></svg>
-          <span class="lbl" id="playLbl">Loading</span>
-        </button>
-        <div class="scope-wrap">
-          <canvas id="scope" aria-hidden="true"></canvas>
-          <span class="scope-cap" id="scopeCap">Waveform</span>
-          <span class="scope-len" id="scopeLen"></span>
-        </div>
-      </div>
-      <div class="hints" id="hints"><span class="k">Clip length</span></div>
-    </section>
-
-    <div id="errorBox" class="error" hidden>
-      <p id="errorMsg">Couldn't load any clips. Check that you're online, then try again.</p>
-      <button class="btn primary" id="retry">Try again</button>
+    <div class="stats wide" aria-live="polite">
+      <div><span>Score</span><b id="stScore">0</b></div>
+      <div><span>Streak</span><b id="stStreak">0</b></div>
+      <div><span>Best</span><b id="stBest">0</b></div>
+      <div><span>Correct</span><b id="stCorrect">0/0</b></div>
     </div>
 
-    <section class="guess" aria-label="Your guess">
+    <div class="pills" id="diffPills" aria-label="Difficulty"></div>
+
+    <div class="track narrow">
+      <div class="bar" id="bar" aria-hidden="true">
+        <div class="unlocked" id="unlocked"></div>
+        <div class="fill" id="fill"></div>
+      </div>
+      <div class="bar-labels">
+        <span class="bar-mark" id="barMark">0.1s</span>
+        <span class="tries" id="tries">4 tries</span>
+      </div>
+    </div>
+
+    <div class="deck narrow">
+      <span></span>
+      <div class="play-wrap">
+        <button class="play" id="play" data-state="loading" aria-label="Play the clip">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 4.6v14.8a1.2 1.2 0 0 0 1.8 1l11.6-7.4a1.2 1.2 0 0 0 0-2L8.3 3.6a1.2 1.2 0 0 0-1.8 1Z"/></svg>
+        </button>
+        <span class="status" id="status" aria-live="polite">Loading</span>
+      </div>
+      <span class="len-now" id="lenNow">0.1s</span>
+    </div>
+
+    <div class="guess-row narrow">
       <div class="combo">
         <ul class="suggest" id="suggest" role="listbox" aria-label="Matching songs" hidden></ul>
         <label class="field" id="field">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
           <input id="guessInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
-            placeholder="Type a song, producer, or 日本語 title" role="combobox"
-            aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" aria-label="Guess the song">
+            placeholder="Name that song" role="combobox" aria-autocomplete="list"
+            aria-expanded="false" aria-controls="suggest" aria-label="Guess the song">
         </label>
       </div>
-      <div class="guess-foot">
-        <span class="tries"><span class="pips" id="pips"></span><span id="triesTxt">4 tries left</span></span>
-        <div class="wrong-list" id="wrongList"></div>
-      </div>
-    </section>
+      <button class="skip" id="skip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 5.2v13.6a1 1 0 0 0 1.5.9l9.6-6.8a1 1 0 0 0 0-1.7L6.5 4.3a1 1 0 0 0-1.5.9Z"/><rect x="17.5" y="4.5" width="2.6" height="15" rx="1" fill="currentColor"/></svg>
+        <span id="skipLbl">Skip</span>
+      </button>
+    </div>
+
+    <div class="wrong-list narrow" id="wrongList"></div>
 
     <section class="reveal" id="reveal" hidden aria-live="polite">
       <img class="art" id="rArt" alt="">
       <div class="meta">
         <p class="verdict" id="rVerdict"></p>
         <h2 class="r-title" id="rTitle"></h2>
-        <p class="r-jp" id="rJp"></p>
-        <p class="r-prod"><span id="rProd"></span><span class="chip" id="rChip"></span></p>
+        <p class="r-sub"><span id="rJp"></span><span id="rProd"></span><span class="chip" id="rChip"></span></p>
         <p class="r-clip" id="rClip"></p>
       </div>
       <div class="r-actions">
         <button class="btn" id="hear">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9.5v5h4l5 4v-13l-5 4H4Zm12.5-.5a4.5 4.5 0 0 1 0 6m2.5-9a8.5 8.5 0 0 1 0 12"/></svg>
-          Hear 5 seconds
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9.5v5h4l5 4v-13l-5 4H4Zm12.5-.5a4.5 4.5 0 0 1 0 6"/></svg>
+          Hear 5s
         </button>
-        <a class="btn" id="rLink" target="_blank" rel="noopener">Open in Apple Music ↗</a>
-        <button class="btn primary" id="next">
-          Next song
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
-        </button>
+        <a class="btn" id="rLink" target="_blank" rel="noopener">Apple Music ↗</a>
+        <button class="btn primary" id="next">Next song →</button>
       </div>
     </section>
 
-    <div class="actions">
-      <button class="btn reroll" id="reroll">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
-        Reroll
-      </button>
-      <button class="btn" id="giveup">Give up</button>
-      <span class="keys"><kbd>Space</kbd> play (in an empty box) · <kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> guess</span>
+    <div class="error narrow" id="errorBox" hidden>
+      <p>Couldn't load any clips. Check that you're online, then try again.</p>
+      <button class="btn" id="retry">Try again</button>
     </div>
 
-    <footer class="stats">
-      <span>Correct <b id="stCorrect">0</b> of <b id="stPlayed">0</b></span>
-      <span>Best streak <b id="stBest">0</b></span>
-      <span>Songs in this mode <b id="stPool">0</b></span>
-      <span class="note">You get 4 tries per song. Each wrong guess unlocks a longer clip (0.1s, 0.5s, 1s, 3s) and fewer points. Reroll skips a song with no penalty. Clips stream from Apple Music's 30-second previews, so you need to be online.</span>
-    </footer>
+    <p class="fine narrow">
+      4 tries per song. A wrong guess or Skip unlocks a longer clip for fewer points.
+      <span class="keys"><br><kbd>Space</kbd> plays the clip · <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd> pick a song</span>
+    </p>
   </main>
 
-  <aside class="lane" id="lane" aria-label="Miku">
-    <p class="bubble" id="bubble" aria-live="polite">Pick a difficulty and hit play. I'll be listening too ♪</p>
-    <div class="miku-wrap">
-      <svg class="miku" viewBox="0 0 400 760" role="img" aria-label="Drawing of Hatsune Miku">
-        <defs>
-          <linearGradient id="gHair" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#55D9CF"/><stop offset=".5" stop-color="#39C5BB"/><stop offset="1" stop-color="#1D958D"/>
-          </linearGradient>
-          <linearGradient id="gHairBack" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#2CAFA6"/><stop offset="1" stop-color="#168079"/>
-          </linearGradient>
-          <linearGradient id="gIris" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#0E625C"/><stop offset=".55" stop-color="#26B0A6"/><stop offset="1" stop-color="#8FF2E8"/>
-          </linearGradient>
-          <linearGradient id="gSkin" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#FFF4EC"/><stop offset="1" stop-color="#FCE2D4"/>
-          </linearGradient>
-          <linearGradient id="gShirt" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#E6EBEE"/><stop offset="1" stop-color="#BFC9D0"/>
-          </linearGradient>
-          <linearGradient id="gSleeve" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#444C52"/><stop offset="1" stop-color="#2C3236"/>
-          </linearGradient>
-        </defs>
-
-        <!-- twin tails -->
-        <g class="tail-l">
-          <path fill="url(#gHair)" d="M118 118C70 130 38 200 42 300C46 390 22 470 30 560C36 640 18 700 40 760L112 760C96 700 112 640 104 560C96 470 118 390 114 300C110 210 126 160 140 140Z"/>
-          <path fill="none" stroke="#8DEDE4" stroke-width="3" stroke-linecap="round" opacity=".6" d="M80 180C62 260 70 380 60 480C52 580 64 660 58 740"/>
-          <path fill="none" stroke="#178A83" stroke-width="2.5" stroke-linecap="round" opacity=".55" d="M100 220C92 320 100 420 88 520C82 600 94 680 86 750"/>
-        </g>
-        <g class="tail-r">
-          <path fill="url(#gHair)" d="M282 118C330 130 362 200 358 300C354 390 378 470 370 560C364 640 382 700 360 760L288 760C304 700 288 640 296 560C304 470 282 390 286 300C290 210 274 160 260 140Z"/>
-          <path fill="none" stroke="#8DEDE4" stroke-width="3" stroke-linecap="round" opacity=".6" d="M320 180C338 260 330 380 340 480C348 580 336 660 342 740"/>
-          <path fill="none" stroke="#178A83" stroke-width="2.5" stroke-linecap="round" opacity=".55" d="M300 220C308 320 300 420 312 520C318 600 306 680 314 750"/>
-        </g>
-
-        <!-- back hair -->
-        <path fill="url(#gHairBack)" d="M104 210C92 110 150 70 200 70C250 70 308 110 296 210L304 340C270 318 130 318 96 340Z"/>
-
-        <!-- neck -->
-        <path fill="#F4D6C6" d="M182 268L182 330C190 338 210 338 218 330L218 268Z"/>
-
-        <!-- arms + detached sleeves -->
-        <path fill="url(#gSkin)" d="M130 350C102 358 86 400 84 450L82 480L126 480L126 450Z"/>
-        <path fill="url(#gSkin)" d="M270 350C298 358 314 400 316 450L318 480L274 480L274 450Z"/>
-        <path fill="url(#gSleeve)" d="M80 466L130 466L142 760L58 760Z"/>
-        <path fill="url(#gSleeve)" d="M320 466L270 466L258 760L342 760Z"/>
-        <path fill="none" stroke="#39C5BB" stroke-width="5" stroke-linecap="round" d="M80 468L130 468M270 468L320 468"/>
-        <path fill="none" stroke="#39C5BB" stroke-width="3" opacity=".7" d="M66 700L134 700M266 700L334 700"/>
-        <!-- the "01" on her left shoulder -->
-        <text x="284" y="432" font-family="Dela Gothic One, Arial Black, sans-serif" font-size="22" fill="#E12885" transform="rotate(-8 296 424)">01</text>
-
-        <!-- shirt -->
-        <path fill="url(#gShirt)" d="M140 340C160 322 180 318 200 318C220 318 240 322 260 340L276 360C280 420 278 470 272 520L270 760L130 760L128 520C122 470 120 420 124 360Z"/>
-        <path fill="none" stroke="#39C5BB" stroke-width="4" stroke-linecap="round" d="M141 342C128 362 124 400 129 440M259 342C272 362 276 400 271 440"/>
-        <path fill="none" stroke="#AAB5BD" stroke-width="2" d="M135 610C170 600 230 600 265 610"/>
-
-        <!-- collar + tie -->
-        <path fill="#EEF2F4" stroke="#39C5BB" stroke-width="3" stroke-linejoin="round" d="M200 336L166 320L158 352L192 362Z"/>
-        <path fill="#EEF2F4" stroke="#39C5BB" stroke-width="3" stroke-linejoin="round" d="M200 336L234 320L242 352L208 362Z"/>
-        <path fill="#39C5BB" d="M192 344L208 344L212 360L222 472L200 498L178 472L188 360Z"/>
-        <path fill="#26A39A" d="M189 336L211 336L207 360L193 360Z"/>
-
-        <!-- face -->
-        <path fill="url(#gSkin)" d="M116 185C116 262 158 300 200 302C242 300 284 262 284 185C284 120 116 120 116 185Z"/>
-
-        <g class="eyes-open">
-          <ellipse cx="160" cy="222" rx="25" ry="30" fill="#fff"/>
-          <ellipse cx="162" cy="226" rx="20" ry="26" fill="url(#gIris)"/>
-          <ellipse cx="162" cy="222" rx="9" ry="13" fill="#0A4A45"/>
-          <ellipse cx="154" cy="211" rx="7" ry="8" fill="#fff"/>
-          <circle cx="170" cy="238" r="3.5" fill="#fff" opacity=".9"/>
-          <path fill="#2A2F33" d="M130 206C140 190 172 186 190 200L192 207C172 196 146 198 134 213ZM130 206L121 199L134 213Z"/>
-
-          <ellipse cx="240" cy="222" rx="25" ry="30" fill="#fff"/>
-          <ellipse cx="238" cy="226" rx="20" ry="26" fill="url(#gIris)"/>
-          <ellipse cx="238" cy="222" rx="9" ry="13" fill="#0A4A45"/>
-          <ellipse cx="231" cy="211" rx="7" ry="8" fill="#fff"/>
-          <circle cx="247" cy="238" r="3.5" fill="#fff" opacity=".9"/>
-          <path fill="#2A2F33" d="M270 206C260 190 228 186 210 200L208 207C228 196 254 198 266 213ZM270 206L279 199L266 213Z"/>
-        </g>
-        <g class="eyes-happy" fill="none" stroke="#2A2F33" stroke-width="5.5" stroke-linecap="round">
-          <path d="M138 228Q160 198 184 228"/>
-          <path d="M216 228Q240 198 262 228"/>
-        </g>
-
-        <ellipse cx="141" cy="259" rx="15" ry="7" fill="#FF8FAB" opacity=".45"/>
-        <ellipse cx="259" cy="259" rx="15" ry="7" fill="#FF8FAB" opacity=".45"/>
-
-        <g class="mouth-idle"><path fill="#D9486E" d="M190 266Q200 277 210 266Q200 271 190 266Z"/></g>
-        <g class="mouth-happy">
-          <path fill="#D9486E" d="M183 262Q200 292 217 262Z"/>
-          <path fill="#FF9AAD" d="M191 275Q200 286 209 275Q200 279 191 275Z"/>
-        </g>
-        <g class="mouth-sad"><path fill="none" stroke="#B03A5B" stroke-width="3" stroke-linecap="round" d="M189 275Q200 265 211 275"/></g>
-
-        <!-- side locks -->
-        <path fill="url(#gHair)" d="M104 168C95 230 100 290 118 338C124 320 128 300 128 280C130 240 128 200 136 176Z"/>
-        <path fill="url(#gHair)" d="M296 168C305 230 300 290 282 338C276 320 272 300 272 280C270 240 272 200 264 176Z"/>
-
-        <!-- bangs -->
-        <path fill="url(#gHair)" stroke="#23A39A" stroke-width="2" stroke-linejoin="round"
-          d="M98 236C88 130 140 78 200 78C260 78 312 130 302 236L290 214L284 170L266 204L254 156L236 196L214 146L200 192L186 146L164 196L146 156L134 204L116 170L110 214Z"/>
-        <path fill="none" stroke="#9AF2EA" stroke-width="6" stroke-linecap="round" opacity=".55" d="M142 110C166 93 234 93 258 110"/>
-        <path fill="none" stroke="#9AF2EA" stroke-width="3" stroke-linecap="round" opacity=".5" d="M128 132L136 124M266 124L274 132"/>
-
-        <!-- headset -->
-        <circle cx="111" cy="214" r="17" fill="#3A4146" stroke="#39C5BB" stroke-width="3"/>
-        <circle cx="111" cy="214" r="6" fill="#39C5BB"/>
-        <circle cx="289" cy="214" r="17" fill="#3A4146" stroke="#39C5BB" stroke-width="3"/>
-        <circle cx="289" cy="214" r="6" fill="#39C5BB"/>
-        <path fill="none" stroke="#3A4146" stroke-width="4" stroke-linecap="round" d="M296 228C298 262 280 282 248 287"/>
-        <ellipse cx="242" cy="288" rx="8" ry="5" fill="#3A4146"/>
-
-        <!-- hair ties -->
-        <g transform="rotate(-28 114 128)">
-          <rect x="96" y="104" width="36" height="48" rx="7" fill="#2F3539"/>
-          <rect x="104" y="114" width="20" height="28" rx="3" fill="#E12885"/>
-        </g>
-        <g transform="rotate(28 286 128)">
-          <rect x="268" y="104" width="36" height="48" rx="7" fill="#2F3539"/>
-          <rect x="276" y="114" width="20" height="28" rx="3" fill="#E12885"/>
-        </g>
-
-        <path class="sweat" fill="#A8E6F7" stroke="#5BB8D6" stroke-width="2" d="M270 150C263 164 263 173 270 175C277 173 277 164 270 150Z"/>
-      </svg>
-    </div>
+  <aside class="side-right" aria-label="Clip settings">
+    <p class="label">Clip length</p>
+    <div class="lengths" id="lengths"></div>
+    <hr class="rule">
+    <p class="label"><label for="vol">Volume</label></p>
+    <input class="vol" id="vol" type="range" min="0" max="100" step="1" value="60">
+    <figure class="miku" id="miku">
+      <img src="miku.png" alt="Hatsune Miku" width="310" height="367">
+    </figure>
   </aside>
 </div>
 
-<div class="sissy">made for sissy ♡</div>
+<div class="sissy">made for sissy <b>♡</b></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -985,13 +782,7 @@ const HINTS = [
   { len: 1, pts: 30 },
   { len: 3, pts: 10 },
 ];
-const LINES = {
-  ready: ["Ready when you are. Hit play!", "One tenth of a second. Good luck ♪", "Listen closely…", "I'd know this one anywhere. Would you?", "Okay, new song. No peeking!"],
-  right: ["Correct! You really know your Vocaloid ♪", "Yes!! That's the one!", "From 0.1 seconds?! Amazing!", "Perfect. Do you have absolute pitch?", "Easy for you, huh?"],
-  wrong: ["Out of tries! That was {t}.", "Aww. It was {t}.", "So close… it was {t}!", "Hehe, it was {t}."],
-  hint: ["A little longer? Okay ♪", "Here's a bit more.", "Fine, fine. Listen again!"],
-  giveup: ["It was {t}! Now you know ♪", "That one was {t}."],
-};
+const MAX_LEN = HINTS[HINTS.length - 1].len;
 
 const $ = (s) => document.querySelector(s);
 const store = {
@@ -999,8 +790,8 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const pickLine = (k, song) => { const l = LINES[k]; return l[Math.floor(Math.random() * l.length)].replace("{t}", song ? song.t : ""); };
 const diffLabel = (k) => DIFFS.find((d) => d.key === k)?.label ?? k;
+const pct = (sec) => `${(Math.min(sec, MAX_LEN) / MAX_LEN) * 100}%`;
 
 const state = {
   diff: DIFFS.some((d) => d.key === store.get("miku01.diff")) ? store.get("miku01.diff") : "easy",
@@ -1010,10 +801,10 @@ const state = {
   offset: 0,
   level: 0,
   answered: false,
+  won: false,
   token: 0,
   fails: 0,
   wrong: [],
-  won: false,
   score: 0,
   streak: 0,
   best: store.get("miku01.best", 0),
@@ -1021,9 +812,29 @@ const state = {
   correct: 0,
 };
 
+const playBtn = $("#play");
+const statusEl = $("#status");
+const input = $("#guessInput");
+const field = $("#field");
+const suggestEl = $("#suggest");
+const revealEl = $("#reveal");
+const volEl = $("#vol");
+const mikuEl = $("#miku");
+const finePointer = window.matchMedia("(pointer: fine)").matches;
+
 /* ---------------- audio ---------------- */
 let ac = null;
-const audio = () => (ac ??= new (window.AudioContext || window.webkitAudioContext)());
+let master = null;
+const gainFor = () => (Number(volEl.value) / 100) ** 2;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = gainFor();
+    master.connect(ac.destination);
+  }
+  return ac;
+}
 const cache = new Map();
 
 async function fetchBytes(url) {
@@ -1070,7 +881,7 @@ function load(song) {
 // pick a 0.1 s window that actually has sound in it
 function pickOffset(buf) {
   const ch = buf.getChannelData(0), sr = buf.sampleRate, win = Math.floor(sr * 0.1);
-  const hi = Math.max(0.2, buf.duration - 3.4), lo = Math.min(1.2, hi);
+  const hi = Math.max(0.2, buf.duration - 5.5), lo = Math.min(1.2, hi);
   let best = lo, bestRms = -1;
   for (let i = 0; i < 40; i++) {
     const t = lo + Math.random() * (hi - lo);
@@ -1086,10 +897,13 @@ function pickOffset(buf) {
 
 let current = null;
 let raf = 0;
+const fillEl = $("#fill");
+function setFill(sec) { fillEl.style.width = pct(sec); }
 function stopAudio() {
   if (current) { try { current.src.stop(); } catch {} current = null; }
   cancelAnimationFrame(raf);
-  lane.classList.remove("listening");
+  setFill(0);
+  playBtn.classList.remove("on");
 }
 function play(len, from = state.offset) {
   if (!state.buffer) return;
@@ -1107,110 +921,26 @@ function play(len, from = state.offset) {
   g.gain.setValueAtTime(1, t0 + len - fade);
   g.gain.linearRampToValueAtTime(0, t0 + len);
   src.connect(g);
-  g.connect(a.destination);
+  g.connect(master);
   src.start(t0, from, len + 0.01);
-  current = { src, t0, len, from };
+  current = { src };
+  playBtn.classList.add("on");
   src.onended = () => {
     if (current?.src !== src) return;
     current = null;
-    lane.classList.remove("listening");
-    drawScope(1);
+    playBtn.classList.remove("on");
+    setTimeout(() => { if (!current) setFill(0); }, 350);
   };
-  renderWave(from, len);
-  lane.classList.remove("listening");
-  void lane.offsetWidth;
-  lane.classList.add("listening");
-  playBtn.classList.remove("on");
-  void playBtn.offsetWidth;
-  playBtn.classList.add("on");
   const tick = () => {
-    if (!current || current.src !== src) return;
-    const p = Math.max(0, Math.min(1, (a.currentTime - t0) / len));
-    drawScope(p);
-    if (p < 1) raf = requestAnimationFrame(tick);
+    if (current?.src !== src) return;
+    const t = Math.max(0, Math.min(len, a.currentTime - t0));
+    setFill(t);
+    if (t < len) raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
 }
 
-/* ---------------- scope ---------------- */
-const scope = $("#scope");
-const sctx = scope.getContext("2d");
-const waveCanvas = document.createElement("canvas");
-const waveLit = document.createElement("canvas");
-const waveDim = document.createElement("canvas");
-let wave = null; // { from, len }
-const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-
-function sizeScope() {
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(1, Math.round(scope.clientWidth * dpr));
-  const h = Math.max(1, Math.round(scope.clientHeight * dpr));
-  if (scope.width !== w || scope.height !== h) { scope.width = w; scope.height = h; }
-  if (wave) renderWave(wave.from, wave.len); else drawScope(0);
-}
-function renderWave(from, len) {
-  wave = { from, len };
-  const w = scope.width, h = scope.height;
-  waveCanvas.width = w; waveCanvas.height = h;
-  const x = waveCanvas.getContext("2d");
-  x.clearRect(0, 0, w, h);
-  if (!state.buffer) return;
-  const ch = state.buffer.getChannelData(0), sr = state.buffer.sampleRate;
-  const s0 = Math.floor(from * sr), n = Math.max(1, Math.floor(len * sr));
-  let peak = 0.0001;
-  for (let j = 0; j < n; j++) { const v = Math.abs(ch[s0 + j] || 0); if (v > peak) peak = v; }
-  const gain = Math.min(4, 0.86 / peak);
-  const per = n / w, mid = h / 2;
-  x.fillStyle = "#fff";
-  for (let i = 0; i < w; i++) {
-    const a0 = s0 + Math.floor(i * per), a1 = Math.max(a0 + 1, s0 + Math.floor((i + 1) * per));
-    let mn = 1, mx = -1;
-    for (let j = a0; j < a1; j++) { const v = ch[j] || 0; if (v < mn) mn = v; if (v > mx) mx = v; }
-    const y1 = mid - mx * gain * mid, y2 = mid - mn * gain * mid;
-    x.fillRect(i, y1, 1, Math.max(1, y2 - y1));
-  }
-  // two pre-colored copies: played part in teal, the rest faded
-  for (const [c, color] of [[waveLit, cssVar("--scope-wave")], [waveDim, cssVar("--scope-dim")]]) {
-    c.width = w; c.height = h;
-    const cx = c.getContext("2d");
-    cx.drawImage(waveCanvas, 0, 0);
-    cx.globalCompositeOperation = "source-in";
-    cx.fillStyle = color;
-    cx.fillRect(0, 0, w, h);
-  }
-  $("#scopeLen").textContent = len < 1 ? `${Math.round(len * 1000)} ms` : `${len.toFixed(1)} s`;
-  $("#scopeCap").textContent = len <= 0.11 ? "Your 0.1 s, every sample" : "Waveform";
-  drawScope(0);
-}
-function drawScope(progress) {
-  const w = scope.width, h = scope.height;
-  sctx.clearRect(0, 0, w, h);
-  sctx.fillStyle = cssVar("--scope-mid");
-  sctx.fillRect(0, Math.floor(h / 2), w, Math.max(1, Math.round(window.devicePixelRatio || 1)));
-  if (!wave) return;
-  const px = Math.round(w * progress);
-  sctx.drawImage(waveDim, 0, 0);
-  if (px > 0) sctx.drawImage(waveLit, 0, 0, px, h, 0, 0, px, h);
-  if (progress > 0 && progress < 1) {
-    sctx.fillStyle = cssVar("--pink");
-    sctx.fillRect(px - 1, 0, Math.max(2, Math.round(window.devicePixelRatio || 1) * 2), h);
-  }
-}
-new ResizeObserver(sizeScope).observe(scope);
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => {
-  if (wave) { renderWave(wave.from, wave.len); drawScope(1); } else drawScope(0);
-});
-
 /* ---------------- game ---------------- */
-const lane = $("#lane");
-const playBtn = $("#play");
-const input = $("#guessInput");
-const field = $("#field");
-const suggestEl = $("#suggest");
-const revealEl = $("#reveal");
-const finePointer = window.matchMedia("(pointer: fine)").matches;
-const hintsEl = $("#hints");
-
 const poolFor = (d) => SONGS.filter((s) => !s.failed && (d === "all" || s.d === d));
 
 function draw(d) {
@@ -1228,6 +958,20 @@ function preloadNext() {
   const nxt = bag && bag[bag.length - 1];
   if (nxt) load(nxt).catch(() => {});
 }
+
+function setStatus(text, tone = "") {
+  statusEl.textContent = text;
+  statusEl.className = "status" + (tone ? " " + tone : "");
+}
+let toastTimer = 0;
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+
 /* ---------------- autocomplete ---------------- */
 // suggestions always search every song, so the box never gives away the difficulty pool
 const norm = (s) => (s || "").normalize("NFKC").toLowerCase().replace(/[\s\-_.,!?:;'’"・、。☆★♣∞&×()\[\]\/〜~@*]/g, "");
@@ -1312,90 +1056,33 @@ function setActive(i, scroll = true) {
   if (scroll) suggestEl.children[active]?.scrollIntoView({ block: "nearest" });
 }
 
-function guess(song) {
-  if (state.answered || !state.buffer || !song) return;
-  input.value = "";
-  closeSuggest();
-  if (song === state.song) return finish(true);
-  state.wrong.push(song);
-  field.classList.remove("shake");
-  void field.offsetWidth;
-  field.classList.add("shake");
-  if (state.level < HINTS.length - 1) {
-    state.level++;
-    say(`Not "${song.t}"! Here's ${HINTS[state.level].len}s ♪`, "sad");
-    renderHints();
-    renderStatus();
-    setPlay("ready");
-    play(HINTS[state.level].len);
-  } else {
-    finish(false);
-  }
-}
-function renderGuess() {
-  const left = state.answered && !state.won ? 0 : HINTS.length - state.level;
-  $("#pips").innerHTML = HINTS.map((_, i) => `<i class="${i < left ? "" : "gone"}"></i>`).join("");
-  $("#triesTxt").textContent = state.answered
-    ? (state.won ? "Got it!" : "Round over")
-    : `${left} ${left === 1 ? "try" : "tries"} left`;
-  const wl = $("#wrongList");
-  wl.innerHTML = "";
-  for (const s of state.wrong) {
-    const c = document.createElement("span");
-    c.className = "wrong-chip";
-    c.textContent = s.t;
-    wl.appendChild(c);
-  }
-  input.disabled = state.answered;
-  input.placeholder = state.answered ? "Hit Next song for another one" : "Type a song, producer, or 日本語 title";
-}
-
-function say(text, mood = "") {
-  $("#bubble").textContent = text;
-  lane.classList.toggle("happy", mood === "happy");
-  lane.classList.toggle("sad", mood === "sad");
-}
-let toastTimer = 0;
-function toast(text) {
-  const t = $("#toast");
-  t.textContent = text;
-  t.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
-}
-
+/* ---------------- rounds ---------------- */
 function newRound() {
   stopAudio();
   const token = ++state.token;
-  const pool = poolFor(state.diff);
-  if (pool.length < 1) return showError();
+  if (poolFor(state.diff).length < 1) return showError();
   $("#errorBox").hidden = true;
   state.answered = false;
+  state.won = false;
   state.level = 0;
   state.buffer = null;
-  wave = null;
+  state.wrong = [];
   const song = draw(state.diff);
   state.song = song;
-  state.wrong = [];
-  state.won = false;
   input.value = "";
   closeSuggest();
   revealEl.hidden = true;
-  renderHints();
-  renderStatus();
-  drawScope(0);
-  $("#scopeLen").textContent = "";
-  $("#scopeCap").textContent = "Waveform";
+  render();
   setPlay("loading");
-  say("Tuning up…");
+  setStatus("Loading", "muted");
   load(song).then((buf) => {
     if (token !== state.token) return;
     state.fails = 0;
     state.buffer = buf;
     state.offset = pickOffset(buf);
     setPlay("ready");
-    renderHints();
-    say(pickLine("ready"));
+    render();
+    setStatus("Ready");
     if (finePointer) input.focus({ preventScroll: true });
     preloadNext();
   }).catch(() => {
@@ -1410,73 +1097,36 @@ function newRound() {
 function showError() {
   stopAudio();
   setPlay("loading");
+  setStatus("Offline?", "bad");
   $("#errorBox").hidden = false;
-  say("I can't reach the music right now…", "sad");
 }
-
 function setPlay(s) {
   playBtn.dataset.state = s;
   playBtn.disabled = s === "loading";
-  $("#playLbl").textContent = s === "loading" ? "Loading" : `Play ${HINTS[state.level].len}s`;
 }
 
-function renderDiffs() {
-  const nav = $("#diffs");
-  nav.innerHTML = "";
-  for (const d of DIFFS) {
-    const b = document.createElement("button");
-    b.className = "diff";
-    b.dataset.d = d.key;
-    b.setAttribute("role", "tab");
-    b.setAttribute("aria-selected", String(d.key === state.diff));
-    b.innerHTML = `${d.label} <span class="n">${poolFor(d.key).length}</span>`;
-    b.addEventListener("click", () => {
-      state.diff = d.key;
-      store.set("miku01.diff", d.key);
-      renderDiffs();
-      newRound();
-    });
-    nav.appendChild(b);
-  }
+function unlockNext(statusText, tone) {
+  state.level++;
+  setStatus(statusText, tone);
+  render();
+  play(HINTS[state.level].len);
 }
-function renderHints() {
-  hintsEl.querySelectorAll(".hint").forEach((n) => n.remove());
-  HINTS.forEach((h, i) => {
-    const b = document.createElement("button");
-    b.className = "hint" + (i < state.level ? " used" : "");
-    b.setAttribute("aria-pressed", String(i === state.level));
-    b.disabled = !state.buffer;
-    b.innerHTML = `${h.len}s <small>${state.answered ? "" : h.pts + " pts"}</small>`;
-    b.title = i === 0 ? "The real challenge" : "Longer clip, fewer points, one less try";
-    b.addEventListener("click", () => {
-      if (!state.answered && i > state.level) {
-        state.level = i;
-        say(pickLine("hint"));
-      } else if (state.answered) {
-        state.level = i;
-      } else if (i < state.level) {
-        // already unlocked a longer clip: replaying a shorter one is free but doesn't refund points
-        play(h.len);
-        return;
-      }
-      renderHints();
-      renderStatus();
-      setPlay("ready");
-      play(h.len);
-    });
-    hintsEl.appendChild(b);
-  });
+function guess(song) {
+  if (state.answered || !state.buffer || !song) return;
+  input.value = "";
+  closeSuggest();
+  if (song === state.song) return finish(true);
+  state.wrong.push(song);
+  field.classList.remove("shake");
+  void field.offsetWidth;
+  field.classList.add("shake");
+  if (state.level < HINTS.length - 1) unlockNext(`Not it · ${HINTS[state.level + 1].len}s unlocked`, "bad");
+  else finish(false);
 }
-function renderStatus() {
-  $("#lcdClip").textContent = HINTS[state.level].len.toFixed(3) + "s";
-  $("#lcdRound").textContent = String(state.played + (state.answered ? 0 : 1)).padStart(3, "0");
-  $("#lcdScore").textContent = String(state.score).padStart(5, "0");
-  $("#lcdStreak").textContent = String(state.streak).padStart(2, "0");
-  $("#stCorrect").textContent = state.correct;
-  $("#stPlayed").textContent = state.played;
-  $("#stBest").textContent = state.best;
-  $("#stPool").textContent = poolFor(state.diff).length;
-  renderGuess();
+function skip() {
+  if (state.answered || !state.buffer) return;
+  if (state.level < HINTS.length - 1) unlockNext(`${HINTS[state.level + 1].len}s unlocked`, "muted");
+  else finish(false, true);
 }
 
 function finish(ok, gaveUp = false) {
@@ -1492,15 +1142,20 @@ function finish(ok, gaveUp = false) {
     gained = HINTS[state.level].pts + (state.streak - 1) * 10;
     state.score += gained;
     if (state.streak > state.best) { state.best = state.streak; store.set("miku01.best", state.best); }
+    setStatus(`Correct · +${gained}`);
+    mikuEl.classList.remove("hop");
+    void mikuEl.offsetWidth;
+    mikuEl.classList.add("hop");
   } else {
     state.streak = 0;
+    setStatus(gaveUp ? "Revealed" : "Out of tries", "bad");
   }
   closeSuggest();
   revealEl.hidden = false;
   revealEl.classList.toggle("miss", !ok);
   $("#rVerdict").textContent = ok
-    ? `Correct at ${HINTS[state.level].len}s · +${gained}${state.streak > 1 ? ` (streak ×${state.streak})` : ""}`
-    : gaveUp ? "Gave up" : "Out of tries";
+    ? `Correct at ${HINTS[state.level].len}s${state.streak > 1 ? ` · streak ${state.streak}` : ""}`
+    : gaveUp ? "The answer was" : "Out of tries · it was";
   $("#rTitle").textContent = song.t;
   $("#rJp").textContent = song.jp !== song.t ? song.jp : "";
   $("#rProd").textContent = song.p;
@@ -1511,21 +1166,109 @@ function finish(ok, gaveUp = false) {
   art.src = song.art ? song.art.replace(/\/\d+x\d+bb\./, "/300x300bb.") : "";
   art.alt = `Cover art for ${song.t}`;
   const m = Math.floor(state.offset / 60), sec = (state.offset % 60).toFixed(2).padStart(5, "0");
-  $("#rClip").textContent = `Your clip started at ${m}:${sec} of the 30-second preview.`;
+  $("#rClip").textContent = `Clip taken from ${m}:${sec} of the preview`;
   $("#rLink").href = `https://music.apple.com/${song.c}/song/${song.id}`;
-
-  if (ok) say(pickLine("right"), "happy");
-  else say(pickLine(gaveUp ? "giveup" : "wrong", song), "sad");
-  renderHints();
-  renderStatus();
+  render();
   $("#next").focus({ preventScroll: true });
+}
+
+/* ---------------- render ---------------- */
+function pickDiff(k) {
+  state.diff = k;
+  store.set("miku01.diff", k);
+  renderDiffs();
+  newRound();
+}
+function renderDiffs() {
+  const list = $("#diffList"), pills = $("#diffPills");
+  list.innerHTML = "";
+  pills.innerHTML = "";
+  for (const d of DIFFS) {
+    const sel = String(d.key === state.diff);
+    const a = document.createElement("button");
+    a.className = "diff-item";
+    a.setAttribute("aria-pressed", sel);
+    a.innerHTML = `<span>${d.label}</span><span class="n">${poolFor(d.key).length}</span>`;
+    a.addEventListener("click", () => pickDiff(d.key));
+    list.appendChild(a);
+    const p = document.createElement("button");
+    p.className = "pill";
+    p.dataset.d = d.key;
+    p.setAttribute("aria-pressed", sel);
+    p.textContent = d.label;
+    p.addEventListener("click", () => pickDiff(d.key));
+    pills.appendChild(p);
+  }
+  const r = document.createElement("button");
+  r.className = "pill mini-reroll";
+  r.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.3-4.9L4 8m0-4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"/></svg>Reroll`;
+  r.addEventListener("click", newRound);
+  pills.appendChild(r);
+}
+function renderLengths() {
+  const box = $("#lengths");
+  box.innerHTML = "";
+  HINTS.forEach((h, i) => {
+    const b = document.createElement("button");
+    b.className = "len-btn" + (i < state.level ? " used" : "");
+    b.setAttribute("aria-pressed", String(i === state.level));
+    b.disabled = !state.buffer;
+    b.innerHTML = `${h.len}s<small>${state.answered ? "replay" : h.pts + " pts"}</small>`;
+    b.addEventListener("click", () => {
+      if (state.answered) { state.level = i; render(); play(h.len); return; }
+      if (i > state.level) {
+        // jumping ahead uses up the tries in between
+        state.level = i;
+        setStatus(`${h.len}s unlocked`, "muted");
+        render();
+      }
+      play(h.len);
+    });
+    box.appendChild(b);
+  });
+}
+function render() {
+  const len = HINTS[state.level].len;
+  $("#stScore").textContent = state.score;
+  $("#stStreak").textContent = state.streak;
+  $("#stBest").textContent = state.best;
+  $("#stCorrect").textContent = `${state.correct}/${state.played}`;
+  $("#unlocked").style.width = pct(len);
+  const mark = $("#barMark");
+  mark.textContent = `${len}s`;
+  mark.style.left = `max(14px, ${pct(len)})`;
+  const left = state.answered && !state.won ? 0 : HINTS.length - state.level;
+  $("#tries").textContent = state.answered ? (state.won ? "got it" : "round over") : `${left} ${left === 1 ? "try" : "tries"} left`;
+  $("#lenNow").textContent = `${len}s`;
+  $("#skipLbl").textContent = state.level >= HINTS.length - 1 ? "Reveal" : "Skip";
+  $("#skip").disabled = state.answered || !state.buffer;
+  input.disabled = state.answered;
+  input.placeholder = state.answered ? "Hit Next song for another one" : "Name that song";
+  const wl = $("#wrongList");
+  wl.innerHTML = "";
+  for (const s of state.wrong) {
+    const c = document.createElement("span");
+    c.className = "wrong-chip";
+    c.textContent = s.t;
+    wl.appendChild(c);
+  }
+  renderLengths();
+}
+function buildBar() {
+  const bar = $("#bar");
+  for (const h of HINTS.slice(0, -1)) {
+    const s = document.createElement("span");
+    s.className = "sep";
+    s.style.left = pct(h.len);
+    bar.appendChild(s);
+  }
 }
 
 /* ---------------- wiring ---------------- */
 playBtn.addEventListener("click", () => play(HINTS[state.level].len));
 $("#reroll").addEventListener("click", newRound);
 $("#next").addEventListener("click", newRound);
-$("#giveup").addEventListener("click", () => finish(false, true));
+$("#skip").addEventListener("click", skip);
 $("#hear").addEventListener("click", () => play(5, Math.max(0, state.offset - 0.4)));
 $("#retry").addEventListener("click", () => {
   SONGS.forEach((s) => { delete s.failed; });
@@ -1534,6 +1277,15 @@ $("#retry").addEventListener("click", () => {
   renderDiffs();
   newRound();
 });
+
+volEl.value = store.get("miku01.vol", 60);
+const syncVol = () => {
+  volEl.style.setProperty("--v", volEl.value + "%");
+  if (master) master.gain.setTargetAtTime(gainFor(), ac.currentTime, 0.015);
+};
+volEl.addEventListener("input", () => { syncVol(); store.set("miku01.vol", Number(volEl.value)); });
+syncVol();
+
 input.addEventListener("input", openSuggest);
 input.addEventListener("focus", () => { if (input.value.trim()) openSuggest(); });
 input.addEventListener("blur", closeSuggest);
@@ -1569,8 +1321,8 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+buildBar();
 renderDiffs();
-sizeScope();
 newRound();
 </script>
 </body>
