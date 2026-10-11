@@ -949,6 +949,12 @@ function loadVideo(id) {
   });
 }
 const nicoVolume = () => (Number(volEl.value) / 100) ** 2;
+// browsers pause muted video in background tabs, so only buffer while the page is visible
+const waitVisible = () => new Promise((res) => {
+  if (!document.hidden) return res();
+  const f = () => { if (!document.hidden) { document.removeEventListener("visibilitychange", f); res(); } };
+  document.addEventListener("visibilitychange", f);
+});
 
 let parked = false;
 let parkTimer = 0;
@@ -1165,8 +1171,14 @@ async function newRound() {
   const loaded = await loadVideo(song.nico);
   if (token !== state.token) return;
   state.offset = clipStart(song);
-  const warmed = loaded && (await prepare(state.offset));
-  if (token !== state.token) return;
+  let warmed = false;
+  for (let attempt = 0; loaded && !warmed && attempt < 3; attempt++) {
+    await waitVisible();
+    if (token !== state.token) return;
+    warmed = await prepare(state.offset);
+    if (token !== state.token) return;
+    if (!warmed && !document.hidden) break;  // a real failure, not a background pause
+  }
   if (!warmed) {
     song.failed = true;
     state.fails++;
