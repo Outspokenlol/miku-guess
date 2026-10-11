@@ -624,49 +624,6 @@ body.locked { overflow: hidden; }
 @keyframes mikuIn { from { opacity: 0; transform: translateY(120px); } }
 @media (max-width: 760px) { .win-miku-in { display: none; } }
 
-/* ---------- niconico player ---------- */
-/* While guessing, the player sits just above the top edge (1px on screen, covered) so the
-   browser keeps it running at full speed. When you win, it moves into the overlay. */
-.nico-wrap {
-  position: fixed;
-  left: 0;
-  top: -89px;
-  width: 160px;
-  height: 90px;
-  z-index: 0;
-  overflow: hidden;
-  border-radius: 16px;
-  pointer-events: none;
-}
-.nico-wrap::after { content: ""; position: absolute; inset: 0; background: var(--bg); }
-.nico-wrap iframe { display: block; width: 100%; height: 100%; border: 0; }
-.nico-wrap.stage {
-  z-index: 102;
-  pointer-events: auto;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, .65), 0 0 0 1px rgba(255, 255, 255, .08);
-  animation: winIn .5s ease-out;
-}
-.nico-wrap.stage::after { display: none; }
-.win-stage {
-  width: min(88vw, 860px, calc((100vh - 290px) * 16 / 9));
-  aspect-ratio: 16 / 9;
-  border-radius: 16px;
-  background: #000;
-}
-.nudge {
-  border: 0;
-  background: none;
-  padding: 2px 6px;
-  color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.nudge:hover { color: var(--accent); }
-.win-miku { animation: bob 1.1s ease-in-out infinite; }
-@keyframes bob { 50% { transform: translateY(-10px); } }
-
 /* ---------- smaller screens ---------- */
 @media (max-width: 1100px) {
   .beam { clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%); }
@@ -746,7 +703,6 @@ body.locked { overflow: hidden; }
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 4.6v14.8a1.2 1.2 0 0 0 1.8 1l11.6-7.4a1.2 1.2 0 0 0 0-2L8.3 3.6a1.2 1.2 0 0 0-1.8 1Z"/></svg>
         </button>
         <span class="status" id="status" aria-live="polite">Loading</span>
-        <button class="nudge" id="nudge" hidden>Heard nothing? Start a bit later</button>
       </div>
       <span class="len-now" id="lenNow">0.1s</span>
     </div>
@@ -782,7 +738,7 @@ body.locked { overflow: hidden; }
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9.5v5h4l5 4v-13l-5 4H4Zm12.5-.5a4.5 4.5 0 0 1 0 6"/></svg>
           Play the song
         </button>
-        <a class="btn" id="rLink" target="_blank" rel="noopener">Niconico ↗</a>
+        <a class="btn" id="rLink" target="_blank" rel="noopener">Apple Music ↗</a>
         <button class="btn primary" id="next">Next song →</button>
       </div>
     </section>
@@ -794,7 +750,7 @@ body.locked { overflow: hidden; }
 
     <p class="fine narrow">
       4 tries per song. A wrong guess or Skip unlocks a longer clip for fewer points.
-      Songs play from their original Niconico upload, from the very start.
+      Previews come from Apple Music, so "From the start" means the start of Apple's 30-second preview.
       <span class="keys"><br><kbd>Space</kbd> plays the clip · <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd> pick a song</span>
     </p>
   </main>
@@ -823,20 +779,18 @@ body.locked { overflow: hidden; }
   </aside>
 </div>
 
-<div class="nico-wrap" id="nicoWrap"><iframe id="nico" title="Song player" allow="autoplay; fullscreen"></iframe></div>
-
 <div class="win" id="win" hidden role="dialog" aria-modal="true" aria-labelledby="winTitle">
   <div class="win-bg" id="winBg"></div>
   <div class="win-shade"></div>
   <canvas id="winViz" aria-hidden="true"></canvas>
   <div class="win-card">
     <p class="win-kicker" id="winKicker">Correct</p>
-    <div class="win-stage" id="winStage"></div>
+    <div class="win-art-in"><img class="win-art" id="winArt" alt=""></div>
     <h2 class="win-title" id="winTitle"></h2>
     <p class="win-sub" id="winSub"></p>
     <div class="win-time"><span id="winNow">0:00</span><div class="win-track"><i id="winBar"></i></div><span id="winDur">0:30</span></div>
     <div class="win-actions">
-      <a class="btn" id="winLink" target="_blank" rel="noopener">Niconico ↗</a>
+      <a class="btn" id="winLink" target="_blank" rel="noopener">Apple Music ↗</a>
       <button class="btn primary win-next" id="winNext">New song →</button>
     </div>
   </div>
@@ -873,14 +827,12 @@ const store = {
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const diffLabel = (k) => DIFFS.find((d) => d.key === k)?.label ?? k;
 const pct = (sec) => `${(Math.min(sec, MAX_LEN) / MAX_LEN) * 100}%`;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
 const state = {
   diff: DIFFS.some((d) => d.key === store.get("miku01.diff")) ? store.get("miku01.diff") : "easy",
   bags: {},
   song: null,
-  ready: false,
+  buffer: null,
   offset: 0,
   level: 0,
   answered: false,
@@ -891,12 +843,11 @@ const state = {
   score: 0,
   streak: 0,
   best: store.get("miku01.best", 0),
+  mode: store.get("miku01.mode", "start") === "random" ? "random" : "start",
+  onset: 0,
   played: 0,
   correct: 0,
-  mode: store.get("miku01.mode", "start") === "random" ? "random" : "start",
 };
-// per-song start nudges for videos that open with a moment of silence
-const nudges = store.get("miku01.nudge", {});
 
 const playBtn = $("#play");
 const statusEl = $("#status");
@@ -906,129 +857,153 @@ const suggestEl = $("#suggest");
 const revealEl = $("#reveal");
 const volEl = $("#vol");
 const mikuEl = $("#miku");
-const nudgeBtn = $("#nudge");
 const finePointer = window.matchMedia("(pointer: fine)").matches;
 
-/* ---------------- Niconico player ---------------- */
-// The embed player takes commands over postMessage. Measured: once the start of the song is
-// buffered, audio begins right after "play", so a timer gives clips accurate to ~20 ms.
-const NICO = "https://embed.nicovideo.jp";
-const frame = $("#nico");
-const wrap = $("#nicoWrap");
-let nicoTime = 0;
-let loadWaiter = null;
-const metaWaiters = new Set();
-
-window.addEventListener("message", (e) => {
-  if (e.origin !== NICO) return;
-  const d = e.data || {};
-  if (d.eventName === "loadComplete") loadWaiter?.(true);
-  else if (d.eventName === "error") loadWaiter?.(false);
-  else if (d.eventName === "playerMetadataChange") {
-    nicoTime = (d.data?.currentTime || 0) / 1000;
-    for (const f of [...metaWaiters]) f(nicoTime);
+/* ---------------- audio ---------------- */
+let ac = null;
+let master = null;
+const gainFor = () => (Number(volEl.value) / 100) ** 2;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = gainFor();
+    master.connect(ac.destination);
   }
-});
-function nico(eventName, data) {
-  const msg = { eventName, playerId: "1", sourceConnectorType: 1 };
-  if (data) msg.data = data;
-  frame.contentWindow?.postMessage(msg, NICO);
+  return ac;
 }
-function nextMeta(ms) {
-  return new Promise((res) => {
-    const f = (t) => { if (t > 0) { metaWaiters.delete(f); clearTimeout(timer); res(true); } };
-    const timer = setTimeout(() => { metaWaiters.delete(f); res(false); }, ms);
-    metaWaiters.add(f);
-  });
-}
-function loadVideo(id) {
-  return new Promise((res) => {
-    const timer = setTimeout(() => { loadWaiter = null; res(false); }, 15000);
-    loadWaiter = (ok) => { clearTimeout(timer); loadWaiter = null; res(ok); };
-    frame.src = `${NICO}/watch/${id}?jsapi=1&playerId=1`;
-  });
-}
-const nicoVolume = () => (Number(volEl.value) / 100) ** 2;
-// browsers pause muted video in background tabs, so only buffer while the page is visible
-const waitVisible = () => new Promise((res) => {
-  if (!document.hidden) return res();
-  const f = () => { if (!document.hidden) { document.removeEventListener("visibilitychange", f); res(); } };
-  document.addEventListener("visibilitychange", f);
-});
+const cache = new Map();
 
-let parked = false;
-let parkTimer = 0;
-function park(at = state.offset) {
-  // sit paused exactly at the clip start so the next play is instant
-  parked = false;
-  nico("seek", { time: Math.round(at * 1000) });
-  clearTimeout(parkTimer);
-  parkTimer = setTimeout(() => { parked = true; }, 450);
+async function fetchBytes(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.arrayBuffer();
 }
-async function prepare(start) {
-  // play the opening silently once so it's buffered before the first real clip
-  nico("mute", { mute: true });
-  nico("commentVisibilityChange", { commentVisibility: false });
-  nico("seek", { time: Math.round(start * 1000) });
-  nico("play");
-  const ok = await nextMeta(12000);
-  nico("pause");
-  await sleep(250);
-  park(start);
-  await sleep(500);
-  nico("volumeChange", { volume: nicoVolume() });
-  nico("mute", { mute: false });
-  return ok;
+async function freshPreview(song) {
+  const r = await fetch(`https://itunes.apple.com/lookup?id=${song.id}&country=${song.c}`);
+  const j = await r.json();
+  return j.results?.[0]?.previewUrl ?? null;
+}
+const decode = (bytes) => new Promise((res, rej) => audio().decodeAudioData(bytes, res, rej));
+
+function load(song) {
+  if (cache.has(song.id)) {
+    const p = cache.get(song.id);
+    cache.delete(song.id);
+    cache.set(song.id, p);
+    return p;
+  }
+  const p = (async () => {
+    let bytes;
+    try { bytes = await fetchBytes(song.pv); }
+    catch (e) {
+      const url = await freshPreview(song);
+      if (!url) throw e;
+      song.pv = url;
+      bytes = await fetchBytes(url);
+    }
+    return decode(bytes);
+  })();
+  cache.set(song.id, p);
+  p.catch(() => cache.delete(song.id));
+  // decoded previews are ~10 MB each, so only keep a handful
+  while (cache.size > 5) {
+    const oldest = cache.keys().next().value;
+    if (oldest === state.song?.id) break;
+    cache.delete(oldest);
+  }
+  return p;
 }
 
-let clipTimer = 0;
+// pick a 0.1 s window that actually has sound in it
+function pickOffset(buf) {
+  const ch = buf.getChannelData(0), sr = buf.sampleRate, win = Math.floor(sr * 0.1);
+  const hi = Math.max(0.2, buf.duration - 5.5), lo = Math.min(1.2, hi);
+  let best = lo, bestRms = -1;
+  for (let i = 0; i < 40; i++) {
+    const t = lo + Math.random() * (hi - lo);
+    const s0 = Math.floor(t * sr);
+    let sum = 0;
+    for (let j = 0; j < win; j += 4) { const v = ch[s0 + j] || 0; sum += v * v; }
+    const rms = Math.sqrt(sum / (win / 4));
+    if (rms > 0.06) return t;
+    if (rms > bestRms) { bestRms = rms; best = t; }
+  }
+  return best;
+}
+
+// where the music actually starts: first 10 ms frame that's clearly above the noise floor
+function findOnset(buf) {
+  const ch = buf.getChannelData(0), sr = buf.sampleRate, hop = Math.max(2, Math.floor(sr * 0.01));
+  const n = Math.floor(ch.length / hop);
+  const rms = new Float32Array(n);
+  for (let f = 0; f < n; f++) {
+    let sum = 0;
+    const s0 = f * hop;
+    for (let j = 0; j < hop; j += 2) { const v = ch[s0 + j]; sum += v * v; }
+    rms[f] = Math.sqrt(sum / (hop / 2));
+  }
+  const loud = Float32Array.from(rms).sort()[Math.floor(n * 0.9)] || 0;
+  const thr = Math.max(0.006, loud * 0.18);
+  for (let f = 0; f < n; f++) if (rms[f] >= thr) return Math.min(Math.max(0, f * hop / sr - 0.005), Math.max(0, buf.duration - 3.2));
+  return 0;
+}
+const clipStart = (buf) => (state.mode === "start" ? state.onset : pickOffset(buf));
+
+let current = null;
 let raf = 0;
-let clipping = false;
-let playToken = 0;
+let analyser = null;
+function getAnalyser() {
+  if (!analyser) {
+    analyser = ac.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.8;
+    analyser.connect(master);
+  }
+  return analyser;
+}
 const fillEl = $("#fill");
 function setFill(sec) { fillEl.style.width = pct(sec); }
 function stopAudio() {
-  playToken++;
-  clearTimeout(clipTimer);
+  if (current) { try { current.src.stop(); } catch {} current = null; }
   cancelAnimationFrame(raf);
-  if (state.ready) nico("pause");
-  clipping = false;
   setFill(0);
   playBtn.classList.remove("on");
 }
-async function playClip(len) {
-  if (!state.ready) return;
-  const wasBusy = clipping || !parked;
+function play(len, from = state.offset, opts = {}) {
+  if (!state.buffer) return;
+  const a = audio();
+  if (a.state === "suspended") a.resume();
   stopAudio();
-  const token = playToken;
-  if (wasBusy) { park(); await sleep(480); }
-  if (token !== playToken) return;
-  clipping = true;
-  nico("play");
-  const t0 = performance.now();
+  len = Math.max(0.05, Math.min(len, state.buffer.duration - from));
+  const src = a.createBufferSource();
+  src.buffer = state.buffer;
+  const g = a.createGain();
+  const t0 = a.currentTime + 0.03;
+  const fade = Math.min(0.005, len / 8);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(1, t0 + fade);
+  g.gain.setValueAtTime(1, t0 + len - fade);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  src.connect(g);
+  g.connect(opts.analyse ? getAnalyser() : master);
+  src.start(t0, from, len + 0.01);
+  current = { src, t0, len, from };
   playBtn.classList.add("on");
+  src.onended = () => {
+    if (current?.src !== src) return;
+    current = null;
+    playBtn.classList.remove("on");
+    setTimeout(() => { if (!current) setFill(0); }, 350);
+    opts.onEnd?.();
+  };
   const tick = () => {
-    const t = (performance.now() - t0) / 1000;
-    setFill(Math.min(t, len));
-    if (t < len && token === playToken) raf = requestAnimationFrame(tick);
+    if (current?.src !== src) return;
+    const t = Math.max(0, Math.min(len, a.currentTime - t0));
+    setFill(t);
+    if (t < len) raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
-  clipTimer = setTimeout(() => {
-    if (token !== playToken) return;
-    nico("pause");
-    clipping = false;
-    playBtn.classList.remove("on");
-    setTimeout(() => { if (!clipping) setFill(0); }, 350);
-    setTimeout(() => { if (!clipping) park(); }, 150);
-  }, len * 1000);
-}
-async function playFrom(sec) {
-  // the whole song, used by the win screen and "Play the song"
-  if (!state.ready) return;
-  stopAudio();
-  nico("seek", { time: Math.round(sec * 1000) });
-  await sleep(350);
-  nico("play");
 }
 
 /* ---------------- game ---------------- */
@@ -1044,9 +1019,11 @@ function draw(d) {
   state.bags[d] = bag;
   return bag.pop();
 }
-const randomSpot = (song) => Math.max(0, (song.len || 120) * (0.15 + Math.random() * 0.55));
-const clipStart = (song) => (state.mode === "start" ? (nudges[song.nico] || 0) : randomSpot(song));
-const cover = (song, big) => (song.art ? song.art.replace(/\/\d+x\d+bb\./, big ? "/600x600bb." : "/100x100bb.") : (song.thumb || ""));
+function preloadNext() {
+  const bag = state.bags[state.diff];
+  const nxt = bag && bag[bag.length - 1];
+  if (nxt) load(nxt).catch(() => {});
+}
 
 function setStatus(text, tone = "") {
   statusEl.textContent = text;
@@ -1066,6 +1043,7 @@ function toast(text) {
 const norm = (s) => (s || "").normalize("NFKC").toLowerCase().replace(/[\s\-_.,!?:;'’"・、。☆★♣∞&×()\[\]\/〜~@*]/g, "");
 function prepSongs() {
   for (const s of SONGS) {
+    s.c ||= "jp";
     s.k = [norm(s.t), norm(s.jp), norm(s.p)];
     s.nk = [...new Set((s.n || []).map(norm).filter(Boolean))];
     s.w = `${s.t} ${s.en || ""}`.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(norm);
@@ -1122,8 +1100,7 @@ function renderSuggest() {
     const img = document.createElement("img");
     img.alt = "";
     img.loading = "lazy";
-    const src = cover(s, false);
-    if (src) img.src = src;
+    if (s.art) img.src = s.art;
     const t = document.createElement("span");
     t.className = "t";
     t.textContent = s.t;
@@ -1150,7 +1127,7 @@ function setActive(i, scroll = true) {
 }
 
 /* ---------------- rounds ---------------- */
-async function newRound() {
+function newRound() {
   stopAudio();
   const token = ++state.token;
   if (poolFor(state.diff).length < 1) return showError();
@@ -1158,7 +1135,7 @@ async function newRound() {
   state.answered = false;
   state.won = false;
   state.level = 0;
-  state.ready = false;
+  state.buffer = null;
   state.wrong = [];
   const song = draw(state.diff);
   state.song = song;
@@ -1168,30 +1145,25 @@ async function newRound() {
   render();
   setPlay("loading");
   setStatus("Loading", "muted");
-  const loaded = await loadVideo(song.nico);
-  if (token !== state.token) return;
-  state.offset = clipStart(song);
-  let warmed = false;
-  for (let attempt = 0; loaded && !warmed && attempt < 3; attempt++) {
-    await waitVisible();
+  load(song).then((buf) => {
     if (token !== state.token) return;
-    warmed = await prepare(state.offset);
+    state.fails = 0;
+    state.buffer = buf;
+    state.onset = findOnset(buf);
+    state.offset = clipStart(buf);
+    setPlay("ready");
+    render();
+    setStatus("Ready");
+    if (finePointer) input.focus({ preventScroll: true });
+    preloadNext();
+  }).catch(() => {
     if (token !== state.token) return;
-    if (!warmed && !document.hidden) break;  // a real failure, not a background pause
-  }
-  if (!warmed) {
     song.failed = true;
     state.fails++;
     if (state.fails >= 4) return showError();
     toast(`Couldn't load "${song.t}". Rolling a different song.`);
-    return newRound();
-  }
-  state.fails = 0;
-  state.ready = true;
-  setPlay("ready");
-  render();
-  setStatus("Ready");
-  if (finePointer) input.focus({ preventScroll: true });
+    newRound();
+  });
 }
 function showError() {
   stopAudio();
@@ -1208,10 +1180,10 @@ function unlockNext(statusText, tone) {
   state.level++;
   setStatus(statusText, tone);
   render();
-  playClip(HINTS[state.level].len);
+  play(HINTS[state.level].len);
 }
 function guess(song) {
-  if (state.answered || !state.ready || !song) return;
+  if (state.answered || !state.buffer || !song) return;
   input.value = "";
   closeSuggest();
   if (song === state.song) return finish(true);
@@ -1223,14 +1195,13 @@ function guess(song) {
   else finish(false);
 }
 function skip() {
-  if (state.answered || !state.ready) return;
+  if (state.answered || !state.buffer) return;
   if (state.level < HINTS.length - 1) unlockNext(`${HINTS[state.level + 1].len}s unlocked`, "muted");
   else finish(false, true);
 }
 
 function finish(ok, gaveUp = false) {
-  if (state.answered || !state.song || !state.ready) return;
-  stopAudio();
+  if (state.answered || !state.song || !state.buffer) return;
   state.answered = true;
   state.won = ok;
   const song = state.song;
@@ -1258,7 +1229,9 @@ function finish(ok, gaveUp = false) {
   }
   revealEl.hidden = false;
   revealEl.classList.toggle("miss", !ok);
-  $("#rVerdict").textContent = gaveUp ? "The answer was" : "Out of tries · it was";
+  $("#rVerdict").textContent = ok
+    ? `Correct at ${HINTS[state.level].len}s${state.streak > 1 ? ` · streak ${state.streak}` : ""}`
+    : gaveUp ? "The answer was" : "Out of tries · it was";
   $("#rTitle").textContent = song.t;
   $("#rJp").textContent = song.jp !== song.t ? song.jp : "";
   $("#rProd").textContent = song.p;
@@ -1266,10 +1239,11 @@ function finish(ok, gaveUp = false) {
   chip.textContent = diffLabel(song.d);
   chip.style.setProperty("--c", `var(--d-${song.d})`);
   const art = $("#rArt");
-  art.src = cover(song, true);
+  art.src = song.art ? song.art.replace(/\/\d+x\d+bb\./, "/300x300bb.") : "";
   art.alt = `Cover art for ${song.t}`;
-  $("#rClip").textContent = state.offset > 0.05 ? `Clip started at ${fmt(state.offset)}.${String(Math.round((state.offset % 1) * 10))}` : "Clip started at the very beginning";
-  $("#rLink").href = `https://www.nicovideo.jp/watch/${song.nico}`;
+  const m = Math.floor(state.offset / 60), sec = (state.offset % 60).toFixed(2).padStart(5, "0");
+  $("#rClip").textContent = `Clip started at ${m}:${sec} of Apple's preview`;
+  $("#rLink").href = `https://music.apple.com/${song.c}/song/${song.id}`;
   render();
   $("#next").focus({ preventScroll: true });
 }
@@ -1278,32 +1252,34 @@ function finish(ok, gaveUp = false) {
 const win = $("#win");
 const viz = $("#winViz");
 const vctx = viz.getContext("2d");
-const stage = $("#winStage");
+const winArt = $("#winArt");
+const winMiku = $("#winMiku");
 const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let winRaf = 0;
+let bins = null;
 let confetti = [];
+const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
-function placeStage() {
-  const r = stage.getBoundingClientRect();
-  Object.assign(wrap.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+function playWhole() {
+  // the whole preview from the first note, looping until they move on
+  const from = state.onset;
+  play(state.buffer.duration - from, from, { analyse: true, onEnd: () => { if (!win.hidden) playWhole(); } });
 }
 function openWin(gained) {
   const s = state.song;
-  const bg = cover(s, true);
-  $("#winBg").style.backgroundImage = bg ? `url("${bg}")` : "none";
+  const big = s.art ? s.art.replace(/\/\d+x\d+bb\./, "/600x600bb.") : "";
+  $("#winBg").style.backgroundImage = big ? `url("${big}")` : "none";
+  winArt.src = big;
+  winArt.alt = `Cover art for ${s.t}`;
   $("#winKicker").textContent = `Correct at ${HINTS[state.level].len}s · +${gained}${state.streak > 1 ? ` · ${state.streak} in a row` : ""}`;
   $("#winTitle").textContent = s.t;
   $("#winSub").textContent = [s.jp !== s.t ? s.jp : "", s.p].filter(Boolean).join(" · ");
-  $("#winLink").href = `https://www.nicovideo.jp/watch/${s.nico}`;
-  $("#winDur").textContent = fmt(s.len || 0);
+  $("#winLink").href = `https://music.apple.com/${s.c}/song/${s.id}`;
+  $("#winDur").textContent = fmt(state.buffer.duration - state.onset);
   win.hidden = false;
   document.body.classList.add("locked");
-  placeStage();
-  wrap.classList.add("stage");
   confetti = calm ? [] : burst();
-  // the real song, music video and all, from the very beginning
-  nico("commentVisibilityChange", { commentVisibility: false });
-  playFrom(0);
+  playWhole();
   cancelAnimationFrame(winRaf);
   winRaf = requestAnimationFrame(winLoop);
   $("#winNext").focus({ preventScroll: true });
@@ -1311,8 +1287,6 @@ function openWin(gained) {
 function closeWin() {
   if (win.hidden) return;
   win.hidden = true;
-  wrap.classList.remove("stage");
-  wrap.removeAttribute("style");
   document.body.classList.remove("locked");
   cancelAnimationFrame(winRaf);
   stopAudio();
@@ -1320,8 +1294,8 @@ function closeWin() {
 function burst() {
   const w = innerWidth, h = innerHeight, colors = ["#39C5BB", "#E12885", "#FFFFFF", "#F2C94C", "#86CECB"];
   return Array.from({ length: 170 }, (_, i) => ({
-    x: w / 2 + (Math.random() - 0.5) * 160, y: h * 0.35,
-    vx: (Math.random() - 0.5) * 20, vy: -Math.random() * 17 - 5,
+    x: w / 2 + (Math.random() - 0.5) * 120, y: h * 0.42,
+    vx: (Math.random() - 0.5) * 18, vy: -Math.random() * 17 - 5,
     r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.35,
     s: 5 + Math.random() * 7, c: colors[i % colors.length],
   }));
@@ -1335,10 +1309,36 @@ function winLoop() {
   }
   vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   vctx.clearRect(0, 0, w, h);
-  const len = state.song?.len || 0;
-  const t = Math.min(nicoTime, len || nicoTime);
-  $("#winNow").textContent = fmt(t);
-  $("#winBar").style.width = len ? `${(t / len) * 100}%` : "0%";
+
+  if (analyser && current) {
+    bins ||= new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(bins);
+    let bass = 0;
+    for (let i = 1; i < 7; i++) bass += bins[i];
+    bass /= 6 * 255;
+    // an equalizer along the bottom of the screen, bass in the middle
+    const N = 72, gap = 3, bw = w / N - gap, maxH = h * 0.17;
+    for (let i = 0; i < N; i++) {
+      const fromMid = Math.abs(i - (N - 1) / 2) / (N / 2);
+      // log-spaced bands so the treble gets bars too, with a lift for the quieter highs
+      const v = Math.min(1, (bins[Math.round(2 * Math.pow(55, fromMid))] / 255) * (1 + fromMid * 0.5));
+      const bh = 3 + Math.pow(v, 2.2) * maxH;
+      const x = i * (bw + gap) + gap / 2;
+      const grad = vctx.createLinearGradient(0, h - bh, 0, h);
+      grad.addColorStop(0, `rgba(57, 197, 187, ${0.15 + v * 0.55})`);
+      grad.addColorStop(1, "rgba(57, 197, 187, 0.04)");
+      vctx.fillStyle = grad;
+      vctx.fillRect(x, h - bh, bw, bh);
+    }
+    if (!calm) {
+      winArt.style.setProperty("--pulse", (1 + bass * 0.07).toFixed(3));
+      winMiku.style.setProperty("--bounce", `${(-bass * 30).toFixed(1)}px`);
+    }
+    const t = Math.max(0, Math.min(current.len, ac.currentTime - current.t0));
+    $("#winBar").style.width = `${(t / current.len) * 100}%`;
+    $("#winNow").textContent = fmt(t);
+  }
+
   for (const p of confetti) {
     p.vy += 0.36;
     p.vx *= 0.99;
@@ -1354,7 +1354,6 @@ function winLoop() {
   }
   confetti = confetti.filter((p) => p.y < h + 30);
 }
-window.addEventListener("resize", () => { if (!win.hidden) placeStage(); });
 
 /* ---------------- render ---------------- */
 function pickDiff(k) {
@@ -1396,17 +1395,17 @@ function renderLengths() {
     const b = document.createElement("button");
     b.className = "len-btn" + (i < state.level ? " used" : "");
     b.setAttribute("aria-pressed", String(i === state.level));
-    b.disabled = !state.ready;
+    b.disabled = !state.buffer;
     b.innerHTML = `${h.len}s<small>${state.answered ? "replay" : h.pts + " pts"}</small>`;
     b.addEventListener("click", () => {
-      if (state.answered) { state.level = i; render(); playClip(h.len); return; }
+      if (state.answered) { state.level = i; render(); play(h.len); return; }
       if (i > state.level) {
         // jumping ahead uses up the tries in between
         state.level = i;
         setStatus(`${h.len}s unlocked`, "muted");
         render();
       }
-      playClip(h.len);
+      play(h.len);
     });
     box.appendChild(b);
   });
@@ -1425,8 +1424,7 @@ function render() {
   $("#tries").textContent = state.answered ? (state.won ? "got it" : "round over") : `${left} ${left === 1 ? "try" : "tries"} left`;
   $("#lenNow").textContent = `${len}s`;
   $("#skipLbl").textContent = state.level >= HINTS.length - 1 ? "Reveal" : "Skip";
-  $("#skip").disabled = state.answered || !state.ready;
-  nudgeBtn.hidden = !(state.ready && !state.answered && state.mode === "start");
+  $("#skip").disabled = state.answered || !state.buffer;
   input.disabled = state.answered;
   input.placeholder = state.answered ? "Hit Next song for another one" : "Name that song";
   const wl = $("#wrongList");
@@ -1450,31 +1448,10 @@ function buildBar() {
 }
 
 /* ---------------- wiring ---------------- */
-playBtn.addEventListener("click", () => playClip(HINTS[state.level].len));
+playBtn.addEventListener("click", () => play(HINTS[state.level].len));
 $("#reroll").addEventListener("click", newRound);
 $("#next").addEventListener("click", newRound);
 $("#winNext").addEventListener("click", () => { closeWin(); newRound(); });
-$("#skip").addEventListener("click", skip);
-$("#hear").addEventListener("click", () => playFrom(0));
-$("#retry").addEventListener("click", () => {
-  SONGS.forEach((s) => { delete s.failed; });
-  state.fails = 0;
-  state.bags = {};
-  renderDiffs();
-  newRound();
-});
-nudgeBtn.addEventListener("click", () => {
-  const s = state.song;
-  if (!s || !state.ready) return;
-  const n = Math.min(8, Math.round(((nudges[s.nico] || 0) + 0.3) * 10) / 10);
-  nudges[s.nico] = n;
-  store.set("miku01.nudge", nudges);
-  state.offset = n;
-  setStatus(`Now starting at ${n.toFixed(1)}s for this song`, "muted");
-  stopAudio();
-  park();
-  setTimeout(() => playClip(HINTS[state.level].len), 500);
-});
 function renderModes() {
   document.querySelectorAll(".mode-btn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)));
 }
@@ -1482,20 +1459,26 @@ document.querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click"
   state.mode = b.dataset.mode;
   store.set("miku01.mode", state.mode);
   renderModes();
-  if (state.ready && !state.answered) {
-    stopAudio();
-    state.offset = clipStart(state.song);
-    park();
-    render();
+  if (state.buffer && !state.answered) {
+    state.offset = clipStart(state.buffer);
     setStatus(state.mode === "start" ? "Playing from the start" : "New random spot", "muted");
   }
 }));
 renderModes();
+$("#skip").addEventListener("click", skip);
+$("#hear").addEventListener("click", () => play(state.buffer.duration - state.onset, state.onset));
+$("#retry").addEventListener("click", () => {
+  SONGS.forEach((s) => { delete s.failed; });
+  state.fails = 0;
+  state.bags = {};
+  renderDiffs();
+  newRound();
+});
 
 volEl.value = store.get("miku01.vol", 60);
 const syncVol = () => {
   volEl.style.setProperty("--v", volEl.value + "%");
-  if (state.ready) nico("volumeChange", { volume: nicoVolume() });
+  if (master) master.gain.setTargetAtTime(gainFor(), ac.currentTime, 0.015);
 };
 volEl.addEventListener("input", () => { syncVol(); store.set("miku01.vol", Number(volEl.value)); });
 syncVol();
@@ -1518,7 +1501,7 @@ input.addEventListener("keydown", (e) => {
   } else if (e.code === "Space" && !input.value) {
     // nothing typed yet, so space replays the clip instead of typing a blank
     e.preventDefault();
-    if (!playBtn.disabled) playClip(HINTS[state.level].len);
+    if (!playBtn.disabled) play(HINTS[state.level].len);
   }
 });
 document.addEventListener("keydown", (e) => {
@@ -1532,7 +1515,7 @@ document.addEventListener("keydown", (e) => {
   if (e.target.closest("input, textarea, select")) return;
   if (e.code === "Space") {
     e.preventDefault();
-    if (!playBtn.disabled) playClip(HINTS[state.level].len);
+    if (!playBtn.disabled) play(HINTS[state.level].len);
   } else if (e.key === "Enter" && state.answered && e.target === document.body) {
     newRound();
   } else if (e.key.length === 1 && !state.answered) {
