@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>yt timing</title></head><body>
+<div id="p"></div><pre id="log"></pre>
+<script>
+const log = (m) => (document.getElementById('log').textContent += m + '\n');
+let player, resolveState;
+window.results = [];
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('p', { width: 320, height: 180, videoId: 'VfBswbj1824',
+    playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, fs: 0, iv_load_policy: 3 },
+    events: { onError: (e) => log('ERROR ' + e.data), onReady: () => { window.ready = true; log('ready'); }, onStateChange: (e) => { log('state ' + e.data + ' t=' + player.getCurrentTime().toFixed(3)); if (resolveState) resolveState(e.data); } } });
+}
+const waitState = (want) => new Promise((res) => { resolveState = (s) => { if (s === want) { resolveState = null; res(); } }; });
+window.warm = async () => { player.mute(); player.playVideo(); await waitState(1); player.pauseVideo(); await waitState(2); player.seekTo(0, true); return player.getCurrentTime(); };
+window.clip = async (len, start = 0) => {
+  player.seekTo(start, true);
+  const t0 = performance.now();
+  player.playVideo();
+  await waitState(1);
+  const tPlay = performance.now();
+  const posAtPlay = player.getCurrentTime();
+  await new Promise((r) => setTimeout(r, len * 1000));
+  player.pauseVideo();
+  await waitState(2);
+  await new Promise((r) => setTimeout(r, 300));
+  const end = player.getCurrentTime();
+  const res = { len, start, startupMs: Math.round(tPlay - t0), posAtPlay: +posAtPlay.toFixed(3), endPos: +end.toFixed(3), played: +(end - start).toFixed(3) };
+  window.results.push(res); return res;
+};
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body></html>
