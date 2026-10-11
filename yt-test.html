@@ -1,31 +1,103 @@
-<!doctype html><html><head><meta charset="utf-8"><title>yt timing</title></head><body>
-<div id="p"></div><pre id="log"></pre>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube check</title>
+<style>
+  body { margin: 0; padding: 32px 16px; background: #0A0B0B; color: #E8EDEC; font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; display: grid; gap: 16px; }
+  h1 { margin: 0; font-size: 22px; }
+  button { justify-self: start; padding: 12px 22px; border: 0; border-radius: 999px; background: #39C5BB; color: #042220; font: 600 15px system-ui, sans-serif; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .ok { color: #39C5BB; } .bad { color: #F06A6A; } .muted { color: #8A9491; }
+  #summary { font-weight: 600; font-size: 17px; }
+  #p { position: fixed; left: -9999px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>YouTube check for Miku in 0.1</h1>
+  <p class="muted">Click the button. You should hear a short bit of Lagtrain, then it tests a few more videos silently. Takes about 30 seconds.</p>
+  <button id="go" disabled>Loading…</button>
+  <p id="summary"></p>
+  <ol id="out"></ol>
+</main>
+<div id="p"></div>
 <script>
-const log = (m) => (document.getElementById('log').textContent += m + '\n');
-let player, resolveState;
-window.results = [];
+const VIDEOS = [
+  ["UnIhRpIT7nc", "Lagtrain (official video)"],
+  ["VfBswbj1824", "Lagtrain (Topic audio)"],
+  ["shs0rAiwsGQ", "Senbonzakura (official video)"],
+  ["HOz-9FzIDf0", "Matryoshka (official video)"],
+  ["13OUbaozM9o", "Matryoshka (Topic audio)"],
+  ["vnw8zURAxkU", "Rolling Girl (official video)"],
+];
+const out = document.getElementById("out");
+const go = document.getElementById("go");
+let player, waiter = null, lastError = null;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function onYouTubeIframeAPIReady() {
-  player = new YT.Player('p', { width: 320, height: 180, videoId: 'VfBswbj1824',
+  player = new YT.Player("p", {
+    width: 320, height: 180, videoId: VIDEOS[0][0],
     playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, fs: 0, iv_load_policy: 3 },
-    events: { onError: (e) => log('ERROR ' + e.data), onReady: () => { window.ready = true; log('ready'); }, onStateChange: (e) => { log('state ' + e.data + ' t=' + player.getCurrentTime().toFixed(3)); if (resolveState) resolveState(e.data); } } });
+    events: {
+      onReady: () => { go.disabled = false; go.textContent = "Run the check"; },
+      onError: (e) => { lastError = e.data; if (waiter) waiter("error"); },
+      onStateChange: (e) => { if (waiter && e.data === waiter.want) waiter("ok"); },
+    },
+  });
 }
-const waitState = (want) => new Promise((res) => { resolveState = (s) => { if (s === want) { resolveState = null; res(); } }; });
-window.warm = async () => { player.mute(); player.playVideo(); await waitState(1); player.pauseVideo(); await waitState(2); player.seekTo(0, true); return player.getCurrentTime(); };
-window.clip = async (len, start = 0) => {
-  player.seekTo(start, true);
+function waitFor(want, ms) {
+  return new Promise((res) => {
+    const t = setTimeout(() => { waiter = null; res("timeout"); }, ms);
+    waiter = (r) => { clearTimeout(t); waiter = null; res(r); };
+    waiter.want = want;
+  });
+}
+async function test([id, label], audible) {
+  const li = document.createElement("li");
+  li.textContent = `${label}: testing…`;
+  out.appendChild(li);
+  lastError = null;
+  if (audible) player.unMute(); else player.mute();
+  player.loadVideoById(id, 0);
+  const r = await waitFor(1, 20000);
+  if (r !== "ok") {
+    li.innerHTML = `${label}: <span class="bad">blocked (${lastError ? "error " + lastError : "never started"})</span>`;
+    return false;
+  }
+  // now time a 0.1 s clip from the very start
+  player.pauseVideo();
+  await waitFor(2, 3000);
+  player.seekTo(0, true);
+  await sleep(400);
   const t0 = performance.now();
   player.playVideo();
-  await waitState(1);
-  const tPlay = performance.now();
-  const posAtPlay = player.getCurrentTime();
-  await new Promise((r) => setTimeout(r, len * 1000));
+  await waitFor(1, 8000);
+  const startup = performance.now() - t0;
+  await sleep(100);
   player.pauseVideo();
-  await waitState(2);
-  await new Promise((r) => setTimeout(r, 300));
-  const end = player.getCurrentTime();
-  const res = { len, start, startupMs: Math.round(tPlay - t0), posAtPlay: +posAtPlay.toFixed(3), endPos: +end.toFixed(3), played: +(end - start).toFixed(3) };
-  window.results.push(res); return res;
-};
+  await waitFor(2, 3000);
+  await sleep(300);
+  const played = player.getCurrentTime();
+  li.innerHTML = `${label}: <span class="ok">plays</span> <span class="muted">· 0.1s clip measured ${played.toFixed(2)}s · started in ${Math.round(startup)} ms</span>`;
+  return true;
+}
+go.addEventListener("click", async () => {
+  go.disabled = true;
+  go.textContent = "Checking…";
+  out.innerHTML = "";
+  let ok = 0;
+  for (let i = 0; i < VIDEOS.length; i++) if (await test(VIDEOS[i], i === 0)) ok++;
+  player.pauseVideo();
+  document.getElementById("summary").innerHTML =
+    `<span class="${ok ? "ok" : "bad"}">${ok} of ${VIDEOS.length} videos can play here.</span> Send Claude a screenshot of this page.`;
+  go.textContent = "Run again";
+  go.disabled = false;
+});
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
-</body></html>
+</body>
+</html>
