@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Miku in 0.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Yomogi&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* Layout: game column on the left, Miku standing in her own lane on the right, over a faint piano-roll grid */
+:root {
+  --bg: #EDF4F4;
+  --lane: rgba(57, 197, 187, .055);
+  --grid: rgba(57, 197, 187, .13);
+  --panel: #FFFFFF;
+  --ink: #22292C;
+  --ink-soft: #5B696E;
+  --line: #D2DEDF;
+  --line-strong: #B4C6C8;
+  --key-bg: #E8F0F0;
+  --shadow: rgba(20, 70, 66, .45);
+
+  --miku: #39C5BB;
+  --miku-deep: #1F9C93;
+  --miku-tint: rgba(57, 197, 187, .14);
+  --pink: #E12885;
+  --pink-shadow: rgba(225, 40, 133, .28);
+
+  /* Project SEKAI-style difficulty colors */
+  --d-easy: #4CB81A;
+  --d-medium: #2A9FD6;
+  --d-hard: #E89300;
+  --d-expert: #E3405C;
+  --d-impossible: #A43BDB;
+
+  --good: #1F9E58;
+  --good-tint: rgba(31, 158, 88, .12);
+  --bad: #E3405C;
+  --bad-tint: rgba(227, 64, 92, .1);
+
+  /* the LCD readout is an instrument panel: same look in both themes */
+  --lcd-bg: #0E2A29;
+  --lcd-line: #1B4441;
+  --lcd-ink: #74F3E7;
+  --lcd-dim: #58A39D;
+
+  --scope-bg: #F4F9F9;
+  --scope-mid: #C9DADB;
+  --scope-wave: #39C5BB;
+  --scope-dim: #A9D9D5;
+
+  --f-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+  --f-lcd: "DotGothic16", ui-monospace, "Consolas", monospace;
+  --f-hand: "Yomogi", "Segoe Print", "Comic Sans MS", cursive;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F1618;
+    --lane: rgba(57, 197, 187, .035);
+    --grid: rgba(57, 197, 187, .09);
+    --panel: #172123;
+    --ink: #E4EFEF;
+    --ink-soft: #92A6AA;
+    --line: #273739;
+    --line-strong: #3A4F52;
+    --key-bg: #213032;
+    --shadow: rgba(0, 0, 0, .8);
+    --miku-deep: #5FD9CF;
+    --miku-tint: rgba(57, 197, 187, .16);
+    --pink-shadow: rgba(225, 40, 133, .45);
+    --good: #3CCB7E;
+    --good-tint: rgba(60, 203, 126, .13);
+    --bad: #FF6680;
+    --bad-tint: rgba(255, 102, 128, .12);
+    --scope-bg: #122022;
+    --scope-mid: #29403F;
+    --scope-dim: #2A6662;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    repeating-linear-gradient(to bottom, transparent 0 28px, var(--lane) 28px 56px);
+  background-size: 112px 100%, 100% 100%;
+  background-attachment: fixed;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 340px);
+  grid-template-areas: "game lane";
+  gap: 28px;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-inline: 24px;
+  min-height: 100%;
+}
+.game {
+  grid-area: game;
+  min-width: 0;
+  max-width: 760px;
+  padding-block: 32px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---------- header ---------- */
+.top { display: flex; flex-direction: column; gap: 6px; }
+.eyebrow {
+  margin: 0;
+  font: 14px/1.2 var(--f-lcd);
+  letter-spacing: .16em;
+  color: var(--miku-deep);
+}
+h1 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  line-height: .9;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+h1 .big {
+  font-size: clamp(76px, 12vw, 124px);
+  letter-spacing: -.03em;
+  color: var(--miku);
+  text-shadow: 5px 5px 0 var(--pink-shadow);
+}
+h1 .unit { font-size: clamp(40px, 6vw, 58px); }
+h1 .what {
+  font-size: clamp(20px, 2.6vw, 26px);
+  color: var(--ink-soft);
+  line-height: 1.1;
+  max-width: 11ch;
+}
+.sub { margin: 0; font-size: 17px; color: var(--ink-soft); max-width: 46ch; }
+
+/* ---------- difficulty ---------- */
+.diffs { display: flex; flex-wrap: wrap; gap: 8px; }
+.diff {
+  --c: var(--d-easy);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px 9px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, transform .15s;
+}
+.diff::before {
+  content: "";
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+}
+.diff .n { font: 13px/1 var(--f-lcd); color: var(--ink-soft); }
+.diff:hover { border-color: var(--c); transform: translateY(-1px); }
+.diff[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #fff; }
+.diff[aria-selected="true"]::before { background: #fff; }
+.diff[aria-selected="true"] .n { color: rgba(255, 255, 255, .85); }
+.diff[data-d="medium"] { --c: var(--d-medium); }
+.diff[data-d="hard"] { --c: var(--d-hard); }
+.diff[data-d="expert"] { --c: var(--d-expert); }
+.diff[data-d="impossible"] { --c: var(--d-impossible); }
+.diff[data-d="all"] { --c: var(--ink); }
+.diff[data-d="all"]::before {
+  background: conic-gradient(var(--d-easy) 0 20%, var(--d-medium) 0 40%, var(--d-hard) 0 60%, var(--d-expert) 0 80%, var(--d-impossible) 0);
+}
+.diff[data-d="all"][aria-selected="true"] { color: var(--bg); }
+.diff[data-d="all"][aria-selected="true"] .n { color: var(--bg); opacity: .8; }
+
+/* ---------- stage ---------- */
+.stage {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 18px;
+  box-shadow: 0 22px 44px -32px var(--shadow);
+}
+.lcd {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--lcd-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.lcd div { background: var(--lcd-bg); padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
+.lcd span {
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--lcd-dim);
+}
+.lcd b {
+  font: 400 22px/1.15 var(--f-lcd);
+  color: var(--lcd-ink);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 10px rgba(116, 243, 231, .35);
+}
+
+.deck {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+.play {
+  position: relative;
+  width: 124px; height: 124px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: radial-gradient(circle at 34% 28%, #6DE6DC, var(--miku) 52%, #1F9C93);
+  box-shadow: 0 0 0 7px var(--miku-tint), 0 14px 26px -12px rgba(31, 156, 147, .8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: transform .12s;
+}
+.play:active { transform: scale(.96); }
+.play svg { width: 38px; height: 38px; margin-left: 5px; }
+.play .lbl { font: 14px/1 var(--f-lcd); letter-spacing: .04em; }
+.play[data-state="loading"] { cursor: progress; background: radial-gradient(circle at 34% 28%, #9FD9D4, #6FB9B3 60%, #4C9590); }
+.play[data-state="loading"] svg { display: none; }
+.play[data-state="loading"]::before {
+  content: "";
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  animation: spin .8s linear infinite;
+}
+.play.on::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 3px solid var(--miku);
+  animation: ripple .7s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes ripple { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.35); } }
+
+.scope-wrap {
+  position: relative;
+  height: 104px;
+  min-width: 0;
+  border-radius: 14px;
+  background: var(--scope-bg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.scope-wrap canvas { display: block; width: 100%; height: 100%; }
+.scope-cap {
+  position: absolute;
+  left: 12px; top: 8px;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+.scope-len {
+  position: absolute;
+  right: 12px; bottom: 8px;
+  font: 13px/1 var(--f-lcd);
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.hints { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hints .k {
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-right: 4px;
+}
+.hint {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--line-strong);
+  background: transparent;
+  cursor: pointer;
+  font: 15px/1 var(--f-lcd);
+}
+.hint small { font: 700 12px/1 var(--f-body); color: var(--ink-soft); }
+.hint:hover:not(:disabled) { border-color: var(--miku); }
+.hint[aria-pressed="true"] { border-style: solid; border-color: var(--miku); background: var(--miku-tint); }
+.hint.used:not([aria-pressed="true"]) { opacity: .5; }
+.hint:disabled { cursor: not-allowed; opacity: .45; }
+
+/* ---------- typed guess + autocomplete ---------- */
+.guess { display: flex; flex-direction: column; gap: 10px; }
+.combo { position: relative; }
+.field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 2px solid var(--line-strong);
+  background: var(--panel);
+  cursor: text;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field:focus-within { border-color: var(--miku); box-shadow: 0 0 0 4px var(--miku-tint); }
+.field svg { width: 20px; height: 20px; flex: none; color: var(--ink-soft); }
+.field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 700 18px/1.2 var(--f-body);
+}
+.field input::placeholder { color: var(--ink-soft); font-weight: 500; }
+.field input:focus-visible { outline: none; }
+.field input:disabled { cursor: default; }
+.field.shake { animation: shake .36s ease-in-out; }
+@keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+
+.suggest {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: min(330px, 52vh);
+  overflow-y: auto;
+  border-radius: 16px;
+  border: 2px solid var(--line-strong);
+  background: var(--panel);
+  box-shadow: 0 20px 44px -18px var(--shadow);
+}
+.opt {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 1px 12px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.opt img {
+  grid-row: span 2;
+  width: 46px; height: 46px;
+  border-radius: 7px;
+  object-fit: cover;
+  background: var(--key-bg);
+}
+.opt .t { font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.opt .s { font-size: 13px; line-height: 1.3; color: var(--ink-soft); overflow-wrap: anywhere; }
+.opt[aria-selected="true"] { background: var(--miku-tint); }
+.suggest .empty { padding: 12px; color: var(--ink-soft); font-size: 14px; }
+
+.guess-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.tries { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); }
+.pips { display: inline-flex; gap: 4px; }
+.pips i { width: 10px; height: 10px; border-radius: 50%; background: var(--miku); }
+.pips i.gone { background: var(--line-strong); }
+.wrong-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.wrong-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bad-tint);
+  color: var(--bad);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: line-through;
+}
+
+/* ---------- reveal ---------- */
+.reveal {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 16px 18px;
+  align-items: start;
+  padding: 16px;
+  border-radius: 20px;
+  border: 2px solid var(--good);
+  background: var(--panel);
+  animation: rise .3s ease-out;
+}
+.reveal.miss { border-color: var(--bad); }
+@keyframes rise { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
+.art {
+  width: 116px; height: 116px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--key-bg);
+  display: block;
+}
+.meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.verdict { margin: 0; font: 15px/1.2 var(--f-lcd); letter-spacing: .06em; color: var(--good); }
+.miss .verdict { color: var(--bad); }
+.r-title { margin: 2px 0 0; font: 400 26px/1.15 var(--f-display); text-wrap: balance; overflow-wrap: anywhere; }
+.r-jp { margin: 0; font-size: 15px; color: var(--ink-soft); }
+.r-prod { margin: 4px 0 0; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip {
+  font: 700 11px/1 var(--f-body);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--c, var(--ink-soft));
+}
+.r-clip { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+.r-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--line-strong);
+  background: var(--panel);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+  text-decoration: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .12s, transform .12s;
+}
+.btn:hover { border-color: var(--miku); transform: translateY(-1px); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.btn.reroll { border-color: var(--pink); color: var(--pink); }
+.btn.reroll:hover { background: var(--pink); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.keys { margin-left: auto; font-size: 13px; color: var(--ink-soft); }
+.keys kbd {
+  font: 12px/1 var(--f-lcd);
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line-strong);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.stats .note { flex-basis: 100%; font-size: 13px; }
+
+.error {
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid var(--bad);
+  background: var(--bad-tint);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.error p { margin: 0; flex: 1 1 260px; }
+
+/* ---------- Miku lane ---------- */
+.lane {
+  grid-area: lane;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  pointer-events: none;
+}
+.bubble {
+  position: relative;
+  z-index: 2;
+  width: min(290px, 100%);
+  margin-bottom: -6px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  box-shadow: 4px 4px 0 var(--miku);
+  font: 18px/1.35 var(--f-hand);
+  color: var(--ink);
+  pointer-events: auto;
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  width: 18px; height: 18px;
+  background: var(--panel);
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+.miku-wrap { width: 100%; display: flex; justify-content: center; }
+.miku {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 130px);
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float { 50% { transform: translateY(-7px); } }
+.lane.listening .miku { animation: hop .32s ease-out; }
+@keyframes hop { 40% { transform: translateY(-14px); } }
+
+.tail-l { transform-box: view-box; transform-origin: 114px 128px; animation: swayL 4.5s ease-in-out infinite; }
+.tail-r { transform-box: view-box; transform-origin: 286px 128px; animation: swayR 4.5s ease-in-out infinite; }
+.lane.listening .tail-l, .lane.listening .tail-r { animation-duration: .45s; }
+@keyframes swayL { 50% { transform: rotate(2.4deg); } }
+@keyframes swayR { 50% { transform: rotate(-2.4deg); } }
+
+.eyes-happy, .mouth-happy, .mouth-sad, .sweat { display: none; }
+.lane.happy .eyes-open, .lane.happy .mouth-idle { display: none; }
+.lane.happy .eyes-happy, .lane.happy .mouth-happy { display: inline; }
+.lane.sad .mouth-idle { display: none; }
+.lane.sad .mouth-sad, .lane.sad .sweat { display: inline; }
+
+/* ---------- corner tag + toast ---------- */
+.sissy {
+  position: fixed;
+  right: 12px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  padding: 5px 11px 6px;
+  border-radius: 999px;
+  border: 1.5px solid var(--pink-shadow);
+  background: var(--panel);
+  font: 15px/1 var(--f-hand);
+  color: var(--pink);
+  transform: rotate(-4deg);
+  pointer-events: none;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 880px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "lane" "game";
+    gap: 0;
+    padding-inline: 16px;
+  }
+  .lane {
+    position: relative;
+    height: 190px;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .bubble { flex: 1 1 auto; width: auto; max-width: 300px; margin: 0 0 56px; font-size: 16px; }
+  .bubble::after { left: auto; right: -11px; bottom: 22px; transform: rotate(-45deg); }
+  .miku-wrap { width: 150px; height: 182px; flex: none; overflow: hidden; align-items: flex-start; }
+  .miku { width: 150px; max-height: none; animation: none; }
+  .game { padding-block: 10px 80px; }
+}
+@media (max-width: 560px) {
+  .deck { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .scope-wrap { width: 100%; }
+  .lcd { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reveal { grid-template-columns: 84px minmax(0, 1fr); }
+  .art { width: 84px; height: 84px; }
+  .r-title { font-size: 21px; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .play[data-state="loading"]::before { border-top-color: rgba(255, 255, 255, .35); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="game">
+    <header class="top">
+      <p class="eyebrow">VOCALOID SONG QUIZ ・ CV01</p>
+      <h1><span class="big">0.1</span><span class="unit">秒</span><span class="what">guess the song</span></h1>
+      <p class="sub">You get one tenth of a second of a Vocaloid song. Name it.</p>
+    </header>
+
+    <nav class="diffs" id="diffs" role="tablist" aria-label="Difficulty"></nav>
+
+    <section class="stage" aria-label="Clip player">
+      <div class="lcd" aria-live="polite">
+        <div><span>Clip</span><b id="lcdClip">0.100s</b></div>
+        <div><span>Round</span><b id="lcdRound">001</b></div>
+        <div><span>Score</span><b id="lcdScore">00000</b></div>
+        <div><span>Streak</span><b id="lcdStreak">00</b></div>
+      </div>
+      <div class="deck">
+        <button class="play" id="play" data-state="loading" aria-label="Play clip">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></svg>
+          <span class="lbl" id="playLbl">Loading</span>
+        </button>
+        <div class="scope-wrap">
+          <canvas id="scope" aria-hidden="true"></canvas>
+          <span class="scope-cap" id="scopeCap">Waveform</span>
+          <span class="scope-len" id="scopeLen"></span>
+        </div>
+      </div>
+      <div class="hints" id="hints"><span class="k">Clip length</span></div>
+    </section>
+
+    <div id="errorBox" class="error" hidden>
+      <p id="errorMsg">Couldn't load any clips. Check that you're online, then try again.</p>
+      <button class="btn primary" id="retry">Try again</button>
+    </div>
+
+    <section class="guess" aria-label="Your guess">
+      <div class="combo">
+        <ul class="suggest" id="suggest" role="listbox" aria-label="Matching songs" hidden></ul>
+        <label class="field" id="field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <input id="guessInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+            placeholder="Type a song, producer, or 日本語 title" role="combobox"
+            aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" aria-label="Guess the song">
+        </label>
+      </div>
+      <div class="guess-foot">
+        <span class="tries"><span class="pips" id="pips"></span><span id="triesTxt">4 tries left</span></span>
+        <div class="wrong-list" id="wrongList"></div>
+      </div>
+    </section>
+
+    <section class="reveal" id="reveal" hidden aria-live="polite">
+      <img class="art" id="rArt" alt="">
+      <div class="meta">
+        <p class="verdict" id="rVerdict"></p>
+        <h2 class="r-title" id="rTitle"></h2>
+        <p class="r-jp" id="rJp"></p>
+        <p class="r-prod"><span id="rProd"></span><span class="chip" id="rChip"></span></p>
+        <p class="r-clip" id="rClip"></p>
+      </div>
+      <div class="r-actions">
+        <button class="btn" id="hear">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9.5v5h4l5 4v-13l-5 4H4Zm12.5-.5a4.5 4.5 0 0 1 0 6m2.5-9a8.5 8.5 0 0 1 0 12"/></svg>
+          Hear 5 seconds
+        </button>
+        <a class="btn" id="rLink" target="_blank" rel="noopener">Open in Apple Music ↗</a>
+        <button class="btn primary" id="next">
+          Next song
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn reroll" id="reroll">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
+        Reroll
+      </button>
+      <button class="btn" id="giveup">Give up</button>
+      <span class="keys"><kbd>Space</kbd> play (in an empty box) · <kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> guess</span>
+    </div>
+
+    <footer class="stats">
+      <span>Correct <b id="stCorrect">0</b> of <b id="stPlayed">0</b></span>
+      <span>Best streak <b id="stBest">0</b></span>
+      <span>Songs in this mode <b id="stPool">0</b></span>
+      <span class="note">You get 4 tries per song. Each wrong guess unlocks a longer clip (0.1s, 0.5s, 1s, 3s) and fewer points. Reroll skips a song with no penalty. Clips stream from Apple Music's 30-second previews, so you need to be online.</span>
+    </footer>
+  </main>
+
+  <aside class="lane" id="lane" aria-label="Miku">
+    <p class="bubble" id="bubble" aria-live="polite">Pick a difficulty and hit play. I'll be listening too ♪</p>
+    <div class="miku-wrap">
+      <svg class="miku" viewBox="0 0 400 760" role="img" aria-label="Drawing of Hatsune Miku">
+        <defs>
+          <linearGradient id="gHair" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#55D9CF"/><stop offset=".5" stop-color="#39C5BB"/><stop offset="1" stop-color="#1D958D"/>
+          </linearGradient>
+          <linearGradient id="gHairBack" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2CAFA6"/><stop offset="1" stop-color="#168079"/>
+          </linearGradient>
+          <linearGradient id="gIris" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0E625C"/><stop offset=".55" stop-color="#26B0A6"/><stop offset="1" stop-color="#8FF2E8"/>
+          </linearGradient>
+          <linearGradient id="gSkin" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FFF4EC"/><stop offset="1" stop-color="#FCE2D4"/>
+          </linearGradient>
+          <linearGradient id="gShirt" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E6EBEE"/><stop offset="1" stop-color="#BFC9D0"/>
+          </linearGradient>
+          <linearGradient id="gSleeve" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#444C52"/><stop offset="1" stop-color="#2C3236"/>
+          </linearGradient>
+        </defs>
+
+        <!-- twin tails -->
+        <g class="tail-l">
+          <path fill="url(#gHair)" d="M118 118C70 130 38 200 42 300C46 390 22 470 30 560C36 640 18 700 40 760L112 760C96 700 112 640 104 560C96 470 118 390 114 300C110 210 126 160 140 140Z"/>
+          <path fill="none" stroke="#8DEDE4" stroke-width="3" stroke-linecap="round" opacity=".6" d="M80 180C62 260 70 380 60 480C52 580 64 660 58 740"/>
+          <path fill="none" stroke="#178A83" stroke-width="2.5" stroke-linecap="round" opacity=".55" d="M100 220C92 320 100 420 88 520C82 600 94 680 86 750"/>
+        </g>
+        <g class="tail-r">
+          <path fill="url(#gHair)" d="M282 118C330 130 362 200 358 300C354 390 378 470 370 560C364 640 382 700 360 760L288 760C304 700 288 640 296 560C304 470 282 390 286 300C290 210 274 160 260 140Z"/>
+          <path fill="none" stroke="#8DEDE4" stroke-width="3" stroke-linecap="round" opacity=".6" d="M320 180C338 260 330 380 340 480C348 580 336 660 342 740"/>
+          <path fill="none" stroke="#178A83" stroke-width="2.5" stroke-linecap="round" opacity=".55" d="M300 220C308 320 300 420 312 520C318 600 306 680 314 750"/>
+        </g>
+
+        <!-- back hair -->
+        <path fill="url(#gHairBack)" d="M104 210C92 110 150 70 200 70C250 70 308 110 296 210L304 340C270 318 130 318 96 340Z"/>
+
+        <!-- neck -->
+        <path fill="#F4D6C6" d="M182 268L182 330C190 338 210 338 218 330L218 268Z"/>
+
+        <!-- arms + detached sleeves -->
+        <path fill="url(#gSkin)" d="M130 350C102 358 86 400 84 450L82 480L126 480L126 450Z"/>
+        <path fill="url(#gSkin)" d="M270 350C298 358 314 400 316 450L318 480L274 480L274 450Z"/>
+        <path fill="url(#gSleeve)" d="M80 466L130 466L142 760L58 760Z"/>
+        <path fill="url(#gSleeve)" d="M320 466L270 466L258 760L342 760Z"/>
+        <path fill="none" stroke="#39C5BB" stroke-width="5" stroke-linecap="round" d="M80 468L130 468M270 468L320 468"/>
+        <path fill="none" stroke="#39C5BB" stroke-width="3" opacity=".7" d="M66 700L134 700M266 700L334 700"/>
+        <!-- the "01" on her left shoulder -->
+        <text x="284" y="432" font-family="Dela Gothic One, Arial Black, sans-serif" font-size="22" fill="#E12885" transform="rotate(-8 296 424)">01</text>
+
+        <!-- shirt -->
+        <path fill="url(#gShirt)" d="M140 340C160 322 180 318 200 318C220 318 240 322 260 340L276 360C280 420 278 470 272 520L270 760L130 760L128 520C122 470 120 420 124 360Z"/>
+        <path fill="none" stroke="#39C5BB" stroke-width="4" stroke-linecap="round" d="M141 342C128 362 124 400 129 440M259 342C272 362 276 400 271 440"/>
+        <path fill="none" stroke="#AAB5BD" stroke-width="2" d="M135 610C170 600 230 600 265 610"/>
+
+        <!-- collar + tie -->
+        <path fill="#EEF2F4" stroke="#39C5BB" stroke-width="3" stroke-linejoin="round" d="M200 336L166 320L158 352L192 362Z"/>
+        <path fill="#EEF2F4" stroke="#39C5BB" stroke-width="3" stroke-linejoin="round" d="M200 336L234 320L242 352L208 362Z"/>
+        <path fill="#39C5BB" d="M192 344L208 344L212 360L222 472L200 498L178 472L188 360Z"/>
+        <path fill="#26A39A" d="M189 336L211 336L207 360L193 360Z"/>
+
+        <!-- face -->
+        <path fill="url(#gSkin)" d="M116 185C116 262 158 300 200 302C242 300 284 262 284 185C284 120 116 120 116 185Z"/>
+
+        <g class="eyes-open">
+          <ellipse cx="160" cy="222" rx="25" ry="30" fill="#fff"/>
+          <ellipse cx="162" cy="226" rx="20" ry="26" fill="url(#gIris)"/>
+          <ellipse cx="162" cy="222" rx="9" ry="13" fill="#0A4A45"/>
+          <ellipse cx="154" cy="211" rx="7" ry="8" fill="#fff"/>
+          <circle cx="170" cy="238" r="3.5" fill="#fff" opacity=".9"/>
+          <path fill="#2A2F33" d="M130 206C140 190 172 186 190 200L192 207C172 196 146 198 134 213ZM130 206L121 199L134 213Z"/>
+
+          <ellipse cx="240" cy="222" rx="25" ry="30" fill="#fff"/>
+          <ellipse cx="238" cy="226" rx="20" ry="26" fill="url(#gIris)"/>
+          <ellipse cx="238" cy="222" rx="9" ry="13" fill="#0A4A45"/>
+          <ellipse cx="231" cy="211" rx="7" ry="8" fill="#fff"/>
+          <circle cx="247" cy="238" r="3.5" fill="#fff" opacity=".9"/>
+          <path fill="#2A2F33" d="M270 206C260 190 228 186 210 200L208 207C228 196 254 198 266 213ZM270 206L279 199L266 213Z"/>
+        </g>
+        <g class="eyes-happy" fill="none" stroke="#2A2F33" stroke-width="5.5" stroke-linecap="round">
+          <path d="M138 228Q160 198 184 228"/>
+          <path d="M216 228Q240 198 262 228"/>
+        </g>
+
+        <ellipse cx="141" cy="259" rx="15" ry="7" fill="#FF8FAB" opacity=".45"/>
+        <ellipse cx="259" cy="259" rx="15" ry="7" fill="#FF8FAB" opacity=".45"/>
+
+        <g class="mouth-idle"><path fill="#D9486E" d="M190 266Q200 277 210 266Q200 271 190 266Z"/></g>
+        <g class="mouth-happy">
+          <path fill="#D9486E" d="M183 262Q200 292 217 262Z"/>
+          <path fill="#FF9AAD" d="M191 275Q200 286 209 275Q200 279 191 275Z"/>
+        </g>
+        <g class="mouth-sad"><path fill="none" stroke="#B03A5B" stroke-width="3" stroke-linecap="round" d="M189 275Q200 265 211 275"/></g>
+
+        <!-- side locks -->
+        <path fill="url(#gHair)" d="M104 168C95 230 100 290 118 338C124 320 128 300 128 280C130 240 128 200 136 176Z"/>
+        <path fill="url(#gHair)" d="M296 168C305 230 300 290 282 338C276 320 272 300 272 280C270 240 272 200 264 176Z"/>
+
+        <!-- bangs -->
+        <path fill="url(#gHair)" stroke="#23A39A" stroke-width="2" stroke-linejoin="round"
+          d="M98 236C88 130 140 78 200 78C260 78 312 130 302 236L290 214L284 170L266 204L254 156L236 196L214 146L200 192L186 146L164 196L146 156L134 204L116 170L110 214Z"/>
+        <path fill="none" stroke="#9AF2EA" stroke-width="6" stroke-linecap="round" opacity=".55" d="M142 110C166 93 234 93 258 110"/>
+        <path fill="none" stroke="#9AF2EA" stroke-width="3" stroke-linecap="round" opacity=".5" d="M128 132L136 124M266 124L274 132"/>
+
+        <!-- headset -->
+        <circle cx="111" cy="214" r="17" fill="#3A4146" stroke="#39C5BB" stroke-width="3"/>
+        <circle cx="111" cy="214" r="6" fill="#39C5BB"/>
+        <circle cx="289" cy="214" r="17" fill="#3A4146" stroke="#39C5BB" stroke-width="3"/>
+        <circle cx="289" cy="214" r="6" fill="#39C5BB"/>
+        <path fill="none" stroke="#3A4146" stroke-width="4" stroke-linecap="round" d="M296 228C298 262 280 282 248 287"/>
+        <ellipse cx="242" cy="288" rx="8" ry="5" fill="#3A4146"/>
+
+        <!-- hair ties -->
+        <g transform="rotate(-28 114 128)">
+          <rect x="96" y="104" width="36" height="48" rx="7" fill="#2F3539"/>
+          <rect x="104" y="114" width="20" height="28" rx="3" fill="#E12885"/>
+        </g>
+        <g transform="rotate(28 286 128)">
+          <rect x="268" y="104" width="36" height="48" rx="7" fill="#2F3539"/>
+          <rect x="276" y="114" width="20" height="28" rx="3" fill="#E12885"/>
+        </g>
+
+        <path class="sweat" fill="#A8E6F7" stroke="#5BB8D6" stroke-width="2" d="M270 150C263 164 263 173 270 175C277 173 277 164 270 150Z"/>
+      </svg>
+    </div>
+  </aside>
+</div>
+
+<div class="sissy">made for sissy ♡</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SONGS = [{"d":"easy","t":"World is Mine","jp":"ワールドイズマイン","p":"ryo (supercell)","id":642832873,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2b/92/0b/2b920b5c-fae7-2999-019f-4189430799c5/mzaf_16570154214642202518.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f6/a2/af/f6a2affc-e480-13f1-170c-38b07f89652f/KRHS-92359_VariousArt_MIKUNOPOLI.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Melt","jp":"メルト","p":"ryo (supercell)","id":925583034,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/24/a7/bf/24a7bfee-c3a9-e33f-ee26-9563d2382ca7/mzaf_11302571039260399467.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/ae/f3/a4/aef3a456-e774-8dc2-8be8-38530c30ede5/4511820-93201.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Senbonzakura","jp":"千本桜","p":"Kurousa-P","id":505371452,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/83/75/19/837519ee-73e0-424a-b99a-99bb863e10bb/mzaf_12753351554306168322.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/24/55/d5/mzi.umvxbeuq.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Rolling Girl","jp":"ローリンガール","p":"wowaka","id":1008528698,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music5/v4/aa/2b/60/aa2b607a-f87c-8ee0-10b5-6dcf93d156f2/mzaf_2990097897262806483.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music7/v4/be/87/16/be8716be-1f36-c869-dec3-885881ddb545/QWCE_00152_itunes.png/100x100bb.jpg"},
+{"d":"easy","t":"Tell Your World","jp":"Tell Your World","p":"livetune","id":646329358,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e1/27/2e/e1272ebe-1b21-f413-e4d2-23249c9815e8/mzaf_2904941651768877894.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/6d/47/12/6d4712c3-a025-b4ea-3b17-ab2b8bc777ba/ReUpload.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Ghost Rule","jp":"ゴーストルール","p":"DECO*27","id":1147145175,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3b/49/9a/3b499a80-f3a8-760e-2040-75b125215996/mzaf_5664174503272919592.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/39/41/89/394189a4-f84a-0384-ac8b-35020bc218da/GHOST_shokai_Jacket3000.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Rabbit Hole","jp":"ラビットホール","p":"DECO*27","id":1685142715,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/88/d9/82/88d982ce-3995-012c-a678-601da9313ec6/mzaf_13953798671132389916.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/dc/1e/f0/dc1ef0a5-40b8-434e-2213-e4a1c83022d1/4511820-95968.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Vampire","jp":"ヴァンパイア","p":"DECO*27","id":1555448592,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e5/eb/31/e5eb3121-2acd-5f9c-a7ba-041ea9743d2e/mzaf_2999187209242855401.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/89/13/42/891342f3-9866-33b6-e0a8-96d92aad4881/096362_J.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Mesmerizer","jp":"メズマライザー","p":"32ki","id":1745015575,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9c/44/ca/9c44ca65-f7c8-8f6b-dd5b-016f6a49ca6e/mzaf_11246873477344508303.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/21/01/8d/21018d62-7ba7-b855-c40f-e3561a490b66/4511820-60212.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Lagtrain","jp":"ラグトレイン","p":"inabakumori","id":1526635531,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d7/aa/e1/d7aae181-11ed-073a-1ba6-449c04fabb3c/mzaf_15266460007400412833.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/b4/ac/d1/b4acd1c8-b1b7-ef7b-cf6f-8516f91a59b5/088792_J.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Hibana","jp":"ヒバナ","p":"DECO*27","id":1801477850,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/62/37/04/623704ae-3137-9c70-55bc-0e2f3ef0c415/mzaf_3150569122154003646.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/ce/7a/edce7af7-1bf6-5ac2-9ea6-2ac853af7053/5021732654168.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Matryoshka","jp":"マトリョシカ","p":"Hachi","id":726965341,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/77/8e/40/778e405d-bf43-c1b5-d1d7-52dba5459774/mzaf_11356573595851673799.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/fe/3f/43/fe3f43b1-02d2-5549-c614-e4322aa5a089/dj.lhooxknc.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Sand Planet","jp":"砂の惑星","p":"Hachi","id":1268503458,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7f/ed/07/7fed07a6-29c5-ee3f-993c-91a5914ceb75/mzaf_10289333012024484617.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/80/0d/c3/800dc3e4-21f4-74d5-c5db-8c37ba562786/4525853084398.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Love Me, Love Me, Love Me","jp":"愛して愛して愛して","p":"Kikuo","id":1019138024,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/88/dc/66/88dc66bf-9d47-1ba7-c703-dda33bd12456/mzaf_11189947972374831182.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/39/60/1f/39601f09-510b-b6d3-254e-c85dc1a79222/1.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Telecaster B-Boy","jp":"テレキャスタービーボーイ","p":"Surii","id":1697426965,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/05/26/84/0526846f-5f57-4655-77b8-c16af107a7d3/mzaf_4423691384775263422.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/cf/28/68/cf2868a7-ef0b-212f-f2af-00a54de82e69/4511820-96058.jpg/100x100bb.jpg"},
+{"d":"easy","t":"God-ish","jp":"神っぽいな","p":"PinocchioP","id":1585951058,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/06/29/46/062946f7-e8d8-9ee5-e8ad-239c2d658fb1/mzaf_13199536316777815472.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/d2/60/c1/d260c1d1-419c-aa4c-2e63-15e222cddf37/859757343263_cover.jpg/100x100bb.jpg"},
+{"d":"easy","t":"The Disappearance of Hatsune Miku","jp":"初音ミクの消失","p":"cosMo@Bousou-P","id":547927461,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/78/3f/bd/783fbd33-bf05-b0a1-a5ba-0d3d4652c3a1/mzaf_11778586228658176708.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/v4/b3/f1/bc/b3f1bc97-7899-5e59-c096-b417cb2bb603/KRHS-37210_cosMo_P.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Kagerou Daze","jp":"カゲロウデイズ","p":"Jin","id":1592522220,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/65/40/64/654064f6-0e50-9a7d-21e5-cec038ffc76c/mzaf_772375562545357242.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/f6/5b/57/f65b5760-739b-b207-9f1d-42fdbabb1580/4582290382272_cover.jpg/100x100bb.jpg"},
+{"d":"easy","t":"Ievan Polkka","jp":"Ievan Polkka","p":"Otomania","id":1455313913,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ac/36/ae/ac36ae7f-075a-577a-b43a-57dae0426064/mzaf_1763918876025217796.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/a4/e5/3d/a4e53d67-401b-5294-bd0a-c6b2bcb2dc17/4511820-94793.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Romeo and Cinderella","jp":"ロミオとシンデレラ","p":"doriko","id":1648263854,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/13/49/d2/1349d2d5-9667-c544-2a93-6f67c0587c60/mzaf_7974716178680904071.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/93/2e/9f/932e9f07-68e9-0d9c-b390-d498507a1d97/PA00106837_0_155685_jacket.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Magnet","jp":"magnet","p":"minato","id":944116610,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/1a/93/af/1a93afda-81be-5435-d038-197628807aca/mzaf_7435981807947746383.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/7f/12/61/7f1261b0-de22-e103-012c-0563a654da69/825646170524.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Two-Faced Lovers","jp":"裏表ラバーズ","p":"wowaka","id":456036982,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music/v4/dc/ac/a4/dcaca40d-48aa-35cf-4388-60e2268244bd/mzaf_2612809603994844479.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/68/44/f2/mzi.ypxrpnnx.jpg/100x100bb.jpg"},
+{"d":"medium","t":"World's End Dancehall","jp":"ワールズエンド・ダンスホール","p":"wowaka","id":456037044,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music/v4/dc/78/e1/dc78e148-612d-a47d-2b64-c971620e1104/mzaf_8386408698017154460.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/68/44/f2/mzi.ypxrpnnx.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Girl A","jp":"少女レイ","p":"Mikito-P","id":1408577702,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a6/c9/58/a6c958a3-cb83-5d0c-ab2d-ec03703e06d6/mzaf_15076135870984473971.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/47/fb/3f/47fb3f10-b813-ab86-cdbe-4ad2538e34e0/QWCE_00654.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Darling Dance","jp":"ダーリンダンス","p":"Kairiki Bear","id":1588038115,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c1/00/f6/c100f6ac-474c-b610-31c7-58bb1a2697c9/mzaf_1057080501193859670.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/5b/8b/4c/5b8b4cbe-1212-bc65-bbac-cc58761a88ce/859757385133_cover.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Hated by Life Itself","jp":"命に嫌われている","p":"Kanzaki Iori","id":1688516387,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/1f/44/dd/1f44dd8e-60c0-427e-3e5a-2a15a4c97620/mzaf_7777745514010473244.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/14/d0/dd/14d0dde4-ba9f-cf81-03ee-bf50c1e908eb/ANTCD-46527.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Alien Alien","jp":"エイリアンエイリアン","p":"Nayutalien","id":1195068900,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/73/35/7f/73357f7c-dd63-ca02-3e32-bd36ee7f735c/mzaf_3857586247786144042.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/df/90/0a/df900a21-8c01-c600-3898-78572b3a7bd3/4562251593879_cover.png/100x100bb.jpg"},
+{"d":"medium","t":"Bitter Choco Decoration","jp":"ビターチョコデコレーション","p":"syudou","id":1838916808,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5b/11/f1/5b11f1ae-d206-0c60-3804-296c130b7009/mzaf_4629144484588076800.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d9/0b/99/d90b99c6-f6c8-efe8-5caa-5528f26ecee2/25UMGIM91945.rgb.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Envy Baby","jp":"エンヴィーベイビー","p":"Kanaria","id":1554407037,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ab/2f/da/ab2fdaf1-6cce-c910-a6a8-079e88f49644/mzaf_6874847058684719972.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/40/b9/f7/40b9f72f-4bb4-8dac-9976-f116b7a81c9e/096909_J.jpg/100x100bb.jpg"},
+{"d":"medium","t":"KING","jp":"KING","p":"Kanaria","id":1525673476,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4b/af/db/4bafdb6f-c574-04ba-09fc-3f37d1a73cd1/mzaf_10937190450391071368.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/c7/b4/0b/c7b40bbf-3081-eeb7-a283-7e53fab99a5a/088594_J.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Charles","jp":"シャルル","p":"balloon","id":1271271759,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3d/c7/e7/3dc7e783-91ac-bc69-e447-d37c2935d13f/mzaf_8552759266656421106.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ca/bd/1b/cabd1b6e-a99d-b8ea-28b3-76b1c640243f/4589686423939_cover.jpg/100x100bb.jpg"},
+{"d":"medium","t":"The Lost One's Weeping","jp":"ロストワンの号哭","p":"Neru","id":1858793961,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3b/dd/c8/3bddc869-1438-0d8e-32ee-0ebd331f005f/mzaf_4678006214410042664.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d0/48/80/d0488089-7c08-d71d-7ccc-23ff57a83453/PCSP_06718_A.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Tokyo Teddy Bear","jp":"東京テディベア","p":"Neru","id":489812662,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview62/v4/19/24/9f/19249fa0-fae3-79b0-1347-cd2b33b6e957/mzaf_7220836537737037131.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/6b/7d/36/mzi.dyxggprs.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Brain Fluid Explosion Girl","jp":"脳漿炸裂ガール","p":"Rerulili","id":1445011087,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview118/v4/c6/12/eb/c612ebd9-a6f3-eee2-e4fe-d1cc2f00c05f/mzaf_3824829975227149094.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/92/4e/e5/924ee529-71a3-f440-a206-839d9136af90/00600406363732.rgb.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Kokoronashi","jp":"心做し","p":"Chouchou-P","id":980590415,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/f6/94/ef/f694ef7b-a47f-aef4-a918-ab7b2938630d/mzaf_4639749449928869577.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music5/v4/0e/2b/b8/0e2bb8b7-53de-71a3-8a6d-6d6928094b45/QWCE_00333_itunes.png/100x100bb.jpg"},
+{"d":"medium","t":"Ai Kotoba","jp":"愛言葉","p":"DECO*27","id":766397001,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e4/ac/0e/e4ac0eef-1406-a5a4-d9be-4d47156335fe/mzaf_3486980570267247566.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/3b/de/25/3bde256e-3fb4-98ab-f673-d3642d355e2d/JK_BEST_1500-1400.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Monitoring","jp":"モニタリング","p":"DECO*27","id":1775600454,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7e/9d/55/7e9d555f-8779-8fec-6b90-afd0931ac332/mzaf_1653583414307416769.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/39/76/6c/39766c80-c1b8-6e9a-edea-3ee7423448d6/4511820-60460.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Outer Science","jp":"アウターサイエンス","p":"Jin","id":1538178557,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview124/v4/df/de/51/dfde510d-e080-8482-4a04-8422e4c5590a/mzaf_7280738826338264835.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/59/c4/ae/59c4aedd-6617-9648-b96e-dc39a5c2897c/jacket_MHCL02281B00Z_550.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Six Trillion Years and Overnight Story","jp":"六兆年と一夜物語","p":"kemu","id":580480945,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music/v4/46/38/3d/46383d5d-911a-1739-39f0-e9f094128a17/mzaf_8806682947005903404.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/v4/5f/08/cf/5f08cfdd-1003-95e8-6c0e-756a7dd8cb8d/ANTCD-7360.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Bake no Hana","jp":"化けの花","p":"Nakiso","id":1775050979,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b9/d5/54/b9d55481-0a75-7ea2-8358-e121f0d376a6/mzaf_8813611306351951467.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/92/2b/6c/922b6cd6-8d71-0842-e882-962b05708d7c/4571640281372_cover.png/100x100bb.jpg"},
+{"d":"medium","t":"ODDS&ENDS","jp":"ODDS&ENDS","p":"ryo (supercell)","id":969914590,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c6/61/19/c6611964-9236-9a64-4f92-d43065be429b/mzaf_14996146879348057629.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/2f/89/69/2f8969f3-defc-aca7-debf-63b7f9d2a946/4511820-93366.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Ifuudoudou","jp":"威風堂々","p":"Umetora","id":1009273525,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/16/5e/ab/165eabbc-5b48-56f9-2b9a-8a8a14aad9b7/mzaf_4094119933477613249.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music7/v4/b5/e4/85/b5e485d6-38a8-f33e-5a5e-e8641469ec0c/C.jpg/100x100bb.jpg"},
+{"d":"medium","t":"Cinderella","jp":"シンデレラ","p":"DECO*27","id":1575488793,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/67/03/26/670326a1-739f-cdb5-9807-3002202ebf0e/mzaf_2099211089582794030.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/3e/3b/ef/3e3befa5-aa14-2e59-de19-34c6c70eb60f/PA00088908_0_139071_jacket.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Donut Hole","jp":"ドーナツホール","p":"Hachi","id":1056062119,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/30/4a/fc/304afc17-1cb0-5eda-0d83-a08143947c04/mzaf_1935959363344746144.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music6/v4/5a/58/6b/5a586b92-be56-05ff-865e-0b1a5738055e/DonutHole_iTunes_big_ok.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Panda Hero","jp":"パンダヒーロー","p":"Hachi","id":726965333,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/10/4b/4a/104b4a76-5627-323d-8496-d7285ded307a/mzaf_5187628666483586224.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/fe/3f/43/fe3f43b1-02d2-5549-c614-e4322aa5a089/dj.lhooxknc.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Mrs. Pumpkin's Comical Dream","jp":"Mrs.Pumpkinの滑稽な夢","p":"Hachi","id":726897275,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/67/80/f5/6780f505-5a9d-69c1-dd6d-c0e168715f90/mzaf_8311218187677783441.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music6/v4/7e/9e/ab/7e9eab8c-2105-859d-2f0d-2b2c0f4d4f27/hachi_hanataba_JKP.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Meltdown","jp":"炉心融解","p":"iroha(sasaki)","id":1333438587,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2b/79/8b/2b798bd9-8528-4696-0d63-0d076eb91fa1/mzaf_1026612782787631922.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/d2/2e/bf/d22ebf32-b5e6-a6a8-8676-c6312caafdd5/QWCE_00663_2.jpg/100x100bb.jpg"},
+{"d":"hard","t":"PoPiPo","jp":"ぽっぴっぽー","p":"Lamaze-P","id":1018748012,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/83/fb/c0/83fbc01f-44b4-f27d-4fb8-977dd505e65e/mzaf_4260160572135660302.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/32/80/db/3280db1a-cd7b-b2c6-08b7-ec5ec6785b93/QWCE_10022_itunes.png/100x100bb.jpg"},
+{"d":"hard","t":"Mozaik Role","jp":"モザイクロール","p":"DECO*27","id":1467141111,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/b5/43/ed/b543ed25-d3af-33ba-72a9-250d8a513b27/mzaf_5742905111577822968.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/fa/0e/55/fa0e55ef-28ec-9708-5b89-b469b50d4954/QWCE_00746.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Gimme×Gimme","jp":"ギミー","p":"Hachioji-P × Giga","id":1475739739,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d0/72/df/d072dff4-8ab6-d72e-f835-1521fe960954/mzaf_4435165964912606144.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/e5/9a/bf/e59abf7e-cd40-85ae-8bc3-536f170c8ecf/TFCC-86683WW.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Rettou Joutou","jp":"劣等上等","p":"Giga","id":1536605977,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/1c/46/6b/1c466b2a-ee41-1c0b-af52-2c14f0ff13b4/mzaf_4384984907296007434.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/80/42/81/80428191-7da7-2eb8-39d2-0cdd3d7ede49/195497350834.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Hitorinbo Envy","jp":"ひとりんぼエンヴィー","p":"koyori","id":1753841293,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/35/15/15/3515154e-8f45-6336-f85c-078b6b6fdea3/mzaf_7300383564207598263.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/77/6f/03/776f0322-6f5f-8bcb-c3c5-300d8cf5ed8a/PA00156966_0_196079_jacket.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Deep-Sea Girl","jp":"深海少女","p":"Yuuyu","id":520426749,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music2/v4/55/c7/9b/55c79be8-0ee2-9b97-92b1-3b9cf15772b4/mzaf_5848701733744701306.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/fa/9f/b6/fa9fb6fc-f91b-ef4c-fc18-1943eff07c4f/Jcp40281.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Just Be Friends","jp":"Just Be Friends","p":"Dixie Flatline","id":1020098175,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8b/f6/70/8bf67073-e6df-e897-e596-6cc4e56fed5d/mzaf_722159859759870303.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/01/55/57/015557e0-4e1f-3651-005d-815a621afd1e/QWCE_00178_itunes.png/100x100bb.jpg"},
+{"d":"hard","t":"Double Lariat","jp":"ダブルラリアット","p":"Agoaniki","id":1674496008,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/97/e0/3a/97e03a85-711a-59b5-cbc7-b3641432e0c4/mzaf_13721405033809875647.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/bb/1b/95/bb1b950e-b167-d3af-fa36-464bca31d6de/PA00087358_0_128947_jacket.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Sarishinohara","jp":"サリシノハラ","p":"Mikito-P","id":980989348,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/7a/47/7b7a47ed-1bd2-7556-a203-9043f57fc8a2/mzaf_14034316667665342163.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/71/59/12/715912c4-16e6-fd9d-66aa-bfe93abaa4d6/QWCE_00269_itunes.png/100x100bb.jpg"},
+{"d":"hard","t":"ECHO","jp":"ECHO","p":"Crusher-P","id":975208271,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f5/d5/2a/f5d52af0-837e-8a3c-6d11-c38b108f1b3b/mzaf_4539983817651307278.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/94/fd/43/94fd4362-eb5e-26b4-68ee-b58a9d64a10b/QWCE_00428_itunes.png/100x100bb.jpg"},
+{"d":"hard","t":"Unhappy Refrain","jp":"アンハッピーリフレイン","p":"wowaka","id":456036948,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music2/v4/07/d6/08/07d6089a-8560-c0af-7442-2114347153f9/mzaf_9030431956980378852.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/68/44/f2/mzi.ypxrpnnx.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Hibikase","jp":"ヒビカセ","p":"Giga","id":1697426969,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/6d/44/bf/6d44bffe-5241-913d-c292-93cd811ca371/mzaf_13784503744372254081.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/cf/28/68/cf2868a7-ef0b-212f-f2af-00a54de82e69/4511820-96058.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Bad ∞ End ∞ Night","jp":"Bad ∞ End ∞ Night","p":"Hitoshizuku-P × Yama△","id":981391403,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music3/v4/ba/a6/12/baa61256-67e5-02ab-9ffe-62d588757b24/mzaf_8003199393839168520.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/e0/bc/70/e0bc70f1-00ef-760e-cfa7-7066ed8da2a8/QWCE_00254_itunes.png/100x100bb.jpg"},
+{"d":"hard","t":"Sweet Devil","jp":"Sweet Devil","p":"Hachioji-P","id":1639418603,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/ff/65/43/ff654386-1d4f-601f-abe4-1ede215cddde/mzaf_10611243451742018206.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/79/5a/a0/795aa0c4-119d-138d-1c9a-8de690d2345e/196925527132.jpg/100x100bb.jpg"},
+{"d":"hard","t":"39","jp":"39","p":"sasakure.UK × DECO*27","id":1590320985,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/33/2b/5e/332b5e98-8462-851c-8108-36ba78a0d030/mzaf_1420373347726950918.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/86/54/6c/86546c82-801b-f99b-2b58-a6f0ad85b992/4571374911187_cover.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Daybreak Frontline","jp":"DAYBREAK FRONTLINE","p":"Orangestar","id":1605307923,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c0/45/d9/c045d911-537d-76d3-6564-b04a26052c7d/mzaf_10932817496165867430.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/41/9d/17/419d17e6-6c43-8e06-0682-eb02ae7e771f/4582364268709_cover.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Roki","jp":"ロキ","p":"Mikito-P","id":1597711849,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a2/a2/40/a2a24099-554b-2062-4497-8d718bb9d92e/mzaf_11882118414672339419.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/e5/d3/20/e5d320e7-6a61-240f-bde5-96e9e04fe6f1/PCSP_03887.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Venom","jp":"ベノム","p":"Kairiki Bear","id":1571838424,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/30/4f/4f/304f4f12-d43a-8989-4f11-b679f8af5a65/mzaf_5298025352822610398.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c4/bc/88/c4bc8860-a8a3-e662-0702-b4040d4dc4dc/4582109070611.jpg/100x100bb.jpg"},
+{"d":"hard","t":"Bug","jp":"バグ","p":"Kairiki Bear","id":1633836046,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2d/b1/6a/2db16a35-14e9-7ee6-0f72-c0c99ad13996/mzaf_14674693954161648521.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/50/c2/67/50c26720-a9b6-0f3a-40d6-e48134d833b7/859758457273_cover.png/100x100bb.jpg"},
+{"d":"expert","t":"Kokoro","jp":"ココロ","p":"Toraboruta","id":298795401,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/9b/81/31/9b813198-c147-9f59-a1f6-c31b92c4094a/mzaf_18130347541973616589.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Features/3b/95/e2/dj.ohnynfwh.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Servant of Evil","jp":"悪ノ召使","p":"mothy","id":1333438577,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/6b/59/bd/6b59bd5f-ea55-98e0-2ffe-84997a01d20d/mzaf_12829774025343496005.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/d2/2e/bf/d22ebf32-b5e6-a6a8-8676-c6312caafdd5/QWCE_00663_2.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Daughter of Evil","jp":"悪ノ娘","p":"mothy","id":965333992,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ca/c0/75/cac07512-694c-0339-1f7f-99ff37681b9b/mzaf_1694921722793869159.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/d4/da/f0/d4daf096-4186-1a49-f462-c4443b671b0d/825646135615.jpg/100x100bb.jpg"},
+{"d":"expert","t":"SPiCa","jp":"SPiCa","p":"Toku-P","id":326430848,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/19/af/d4/19afd4cd-847e-b5ab-a222-dfacd0bfbf4e/mzaf_8468206829726884475.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/7a/aa/a8/7aaaa816-f45b-2242-cb2d-6430f176b008/mzi.ocjooxxv.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Electric Angel","jp":"えれくとりっく・えんじぇぅ","p":"Yasuo-P","id":316175249,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/29/50/50/29505051-3ff8-4173-7231-40ea9bf1aff6/mzaf_7402890564137129533.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/82/41/8b/mzi.uyalwasl.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Hello/How Are You","jp":"ハロ／ハワユ","p":"Nanou","id":1010685889,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music7/v4/f8/13/bc/f813bcea-0ac2-f0a6-9571-b65a6aa840e4/mzaf_2907176008166068809.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music5/v4/21/c8/ea/21c8ea42-e841-4ff6-85ad-4a4fd2146783/QWCE_00166_itunes.png/100x100bb.jpg"},
+{"d":"expert","t":"Eh? Ah, Sou.","jp":"え？あぁ、そう。","p":"Chouchou-P","id":980926436,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/ca/d4/df/cad4df80-ffd5-a7a4-6155-452298493a3b/mzaf_1370734636345995674.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/1d/f1/2e/1df12e86-6f0d-8270-e309-a0caea3ef1c5/QWCE_00322_itunes.png/100x100bb.jpg"},
+{"d":"expert","t":"Miracle Paint","jp":"ミラクルペイント","p":"OSTER project","id":662012451,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/79/a0/38/79a0384a-eeef-88a7-841e-3856a008a3eb/mzaf_2495925333797954755.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music2/v4/35/f4/c9/35f4c9bc-4e67-78df-9438-6c9d739fc844/OSTERBEST.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Streaming Heart","jp":"ストリーミングハート","p":"DECO*27","id":944116623,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/41/fd/7b41fdbf-4ec9-0eb2-e8b6-e94e4acce736/mzaf_444307399065427562.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/7f/12/61/7f1261b0-de22-e103-012c-0563a654da69/825646170524.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Two Breaths Walking","jp":"二息歩行","p":"DECO*27","id":573891099,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c5/b6/a9/c5b6a992-6671-cd2a-2d29-4672d19e3725/mzaf_17616217040043094331.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/v4/01/92/95/019295f9-b888-5ac4-7c0a-bd4a5f36906a/DECO27_JKT.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Hand in Hand","jp":"Hand in Hand","p":"livetune","id":1269517850,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/70/aa/18/70aa1887-5c48-f0b2-f82f-51d45cf50d81/mzaf_7616248769840751680.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/ba/f6/4e/baf64eb6-6341-919e-6c96-d572b617affa/VEATP-34604.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Glow","jp":"glow","p":"keeno","id":980956674,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/70/71/ac/7071ac72-f7b6-1c89-5238-1893620081e0/mzaf_10719281971587141755.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/40/8e/44/408e44b7-ed6d-a22b-a584-c4731d46626a/QWCE_00283_itunes.png/100x100bb.jpg"},
+{"d":"expert","t":"Jishou Mushoku","jp":"自傷無色","p":"Nekobolo","id":980248468,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e8/2d/07/e82d07f6-f7b3-21ca-88c9-f54fbdd7d6f9/mzaf_6403947775910164525.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/8a/0d/a8/8a0da89d-0954-b694-0ccb-bb727a56ff3a/QWCE_00366_itunes.png/100x100bb.jpg"},
+{"d":"expert","t":"Teo","jp":"テオ","p":"Omoi","id":1332595713,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/64/77/8b/64778b49-b89a-583b-8582-b83a038bf275/mzaf_14036102712147670046.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/83/d1/84/83d184e3-da60-130c-27db-572d9baffb23/859753914085_cover.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Patchwork Staccato","jp":"つぎはぎスタッカート","p":"Toa","id":910087652,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f5/a6/c7/f5a6c774-bf79-e6b5-c1d1-309171aef4a6/mzaf_14621646717554880682.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/39/63/67/396367dd-52fb-f767-467b-cb1d46dee9b1/4511820-93113.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Freely Tomorrow","jp":"FREELY TOMORROW","p":"Mitchie M","id":464000002,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/59/83/48/598348ca-bdae-1c99-ef57-5df46c71206a/mzaf_8500128250067083366.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/73/16/6f/mzi.qcsqtftv.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Snow Fairy Story","jp":"スノーフェアリーストーリー","p":"40mP","id":1332683694,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5f/db/54/5fdb5438-a78f-d7a6-26c1-a5fd2b66177c/mzaf_8070017718743736184.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/bb/6a/c2/bb6ac285-78d0-2a91-4ff3-86fae59c4f6c/4562251593770_cover.png/100x100bb.jpg"},
+{"d":"expert","t":"The Intense Singing of Hatsune Miku","jp":"初音ミクの激唱","p":"cosMo@Bousou-P","id":1018816588,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0d/e5/d5/0de5d560-6856-d0e4-e09b-78fd8d0ab475/mzaf_2625823881483201901.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/f5/60/9e/f5609e4f-348d-7f81-9440-0168a9ceef91/QWCE_10027_itunes.png/100x100bb.jpg"},
+{"d":"expert","t":"Ikasama Life Game","jp":"イカサマライフゲイム","p":"kemu","id":1467141285,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/02/42/7b/02427b46-d2bb-273a-d79f-3f16808be5f1/mzaf_3191673955735855754.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/fa/0e/55/fa0e55ef-28ec-9708-5b89-b469b50d4954/QWCE_00746.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Interviewer","jp":"インタビュア","p":"Kuwagata-P","id":984481661,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music3/v4/f9/63/b9/f963b9dc-58c0-2892-ec42-c3f8b4090296/mzaf_2959226878697860601.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/1a/aa/16/1aaa16db-db0b-d9ce-d781-3d63abb6790c/QWCE_00235_itunes.png/100x100bb.jpg"},
+{"d":"expert","t":"Saihate","jp":"サイハテ","p":"Kobayashi Onyx","id":642832939,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/91/d2/7d/91d27d38-ed35-9c16-fc04-5dad93e75d4d/mzaf_18241851217118213826.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f6/a2/af/f6a2affc-e480-13f1-170c-38b07f89652f/KRHS-92359_VariousArt_MIKUNOPOLI.jpg/100x100bb.jpg"},
+{"d":"expert","t":"Ten Faced","jp":"十面相","p":"YM","id":975208248,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/dc/68/2b/dc682b99-c177-230d-5f17-eaed674d55a0/mzaf_14063097642946408037.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/94/fd/43/94fd4362-eb5e-26b4-68ee-b58a9d64a10b/QWCE_00428_itunes.png/100x100bb.jpg"},
+{"d":"impossible","t":"Packaged","jp":"Packaged","p":"livetune","id":1269463909,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/48/8c/9a/488c9ab9-11e0-a33b-5ca9-ff643d678981/mzaf_16661655332881651813.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/19/12/ec/1912eced-8a25-a8da-64ac-4b3dcb109513/VEATP-34591.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Last Night, Good Night","jp":"Last Night, Good Night","p":"livetune","id":1269463920,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3d/42/95/3d429526-a415-cd65-7925-fe177c9417ff/mzaf_17824411212026880079.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/19/12/ec/1912eced-8a25-a8da-64ac-4b3dcb109513/VEATP-34591.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Cat Food","jp":"キャットフード","p":"doriko","id":1711348008,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/07/91/d7/0791d774-0526-1c0d-a5fb-25450ece76f3/mzaf_3694720223374864299.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/fa/fe/57/fafe5796-ae5a-d64c-b490-fe13aaf5b3dd/PA00124502_0_171727_jacket.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Weekender Girl","jp":"ウィークエンダーガール","p":"Hachioji-P","id":1116067378,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/bd/ba/a9/bdbaa926-9600-83a7-d0ec-2f9519b9927a/mzaf_5036412320137917616.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/cc/c3/88/ccc388c5-2a99-4b01-26e8-cc5f1acc5236/TFCC-86560WW.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Cendrillon","jp":"サンドリヨン","p":"Signal-P","id":307356176,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/57/10/ff/5710ff88-ccb5-1ed5-89d2-84cf97c011b5/mzaf_1495733373438822514.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/da/09/23/mzi.oclwcczm.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Dancing☆Samurai","jp":"ダンシング☆サムライ","p":"Kanimiso-P","id":1763976265,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/81/c7/af/81c7afdf-a38e-47e5-21e8-ce80960c6871/mzaf_13545090227961559697.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/df/da/40/dfda40f2-cd71-5b34-9601-53ec5829125d/0198448863377_cover.png/100x100bb.jpg"},
+{"d":"impossible","t":"Melancholic","jp":"メランコリック","p":"Junky","id":408807017,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/76/4b/69/764b69e7-3d28-f108-1585-c449ab45fa19/mzaf_561304996468724798.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music/7f/d2/bc/mzi.vfayekfp.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Koi Suru VOC@LOID","jp":"恋スルVOC@LOID","p":"OSTER project","id":662012429,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/64/92/81/64928162-65c2-c34d-4a49-f7f62ceea60f/mzaf_3371654183088380462.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music2/v4/35/f4/c9/35f4c9bc-4e67-78df-9438-6c9d739fc844/OSTERBEST.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Ai Dee","jp":"アイディ","p":"Mitchie M","id":1600612134,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/59/2b/86/592b86cf-27c3-4d7e-384a-637b5391189d/mzaf_12790104510943910947.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/62/74/c4/6274c457-54ee-d48d-b0b8-3ec3e732a0f0/4560427466934.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Luka Luka★Night Fever","jp":"ルカルカ★ナイトフィーバー","p":"samfree","id":1016949822,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ee/b8/9f/eeb89ffa-9320-7542-bddc-a33bce25bd4d/mzaf_3390191640632396675.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/68/55/99/68559901-5592-0b1b-84c8-05bbf0db83a6/QWCE_00118_itunes.png/100x100bb.jpg"},
+{"d":"impossible","t":"Torinoko City","jp":"トリノコシティ","p":"40mP","id":1028521663,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/4c/48/cf/4c48cf91-a63e-9efc-7e49-a2d5881a94e3/mzaf_14034955842631731605.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music7/v4/43/3e/49/433e498b-82b8-b1b5-90b1-fcad9ed9d6eb/QWCE_00471_itunes.png/100x100bb.jpg"},
+{"d":"impossible","t":"Starduster","jp":"スターダスター","p":"Jimmy Thumb-P","id":1008161871,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/93/ac/20/93ac206d-2fee-4ced-039d-7406ef667a3b/mzaf_15048039924333661447.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music7/v4/c5/9c/b6/c59cb6d9-b5ad-3816-75ad-74fcc52798e7/QWCE_00137_itunes.png/100x100bb.jpg"},
+{"d":"impossible","t":"Akatsuki Arrival","jp":"アカツキアライヴァル","p":"Last Note.","id":980963413,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music2/v4/ab/39/a5/ab39a52b-1935-2bb0-eb23-98c3964eae93/mzaf_5998265122807660926.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music5/v4/05/57/02/05570232-fee6-5ee8-50c1-421f5184b583/QWCE_00288_itunes.png/100x100bb.jpg"},
+{"d":"impossible","t":"Musunde Hiraite Rasetsu to Mukuro","jp":"結ンデ開イテ羅刹ト骸","p":"Hachi","id":979172527,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/Music5/v4/f1/35/8f/f1358f70-2a9e-5dfd-7ad2-b2aeccbb3aad/mzaf_494407205432672521.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music5/v4/2d/7a/6e/2d7a6ea0-16fb-bb0a-b36f-de82833ee2c7/dj.gwmhwpvm.png/100x100bb.jpg"},
+{"d":"impossible","t":"Kiritorisen","jp":"キリトリセン","p":"40mP","id":555001987,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2a/be/48/2abe4811-1022-db1f-d171-db5a78f07eb8/mzaf_740920413944964486.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/9b/54/1b/9b541b7e-731f-ff21-3fe4-c83c25355286/KRHS-37246_40mP.jpg/100x100bb.jpg"},
+{"d":"impossible","t":"Rotten Heresy and Chocolate","jp":"腐れ外道とチョコレゐト","p":"PinocchioP","id":1343835404,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0f/d9/2d/0fd92dc6-bf38-1f0a-69b8-8e4c8c294198/mzaf_13507289333441608456.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/af/86/80/af86806b-1e64-4eb7-76b4-8c1804a6b237/4562251593855_cover.png/100x100bb.jpg"},
+{"d":"impossible","t":"Hello, Planet.","jp":"ハロ・プラネット","p":"sasakure.UK","id":1016949272,"c":"us","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/47/77/90/4777904c-00e9-d66c-71d9-7f49a9571ed9/mzaf_2061443918198341071.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/68/55/99/68559901-5592-0b1b-84c8-05bbf0db83a6/QWCE_00118_itunes.png/100x100bb.jpg"},
+{"d":"impossible","t":"Ah, It's a Wonderful Cat Life","jp":"嗚呼、素晴らしきニャン生","p":"Nem","id":1027763994,"c":"jp","pv":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/98/d6/5a/98d65afc-cd71-9801-c2bf-f71326d76133/mzaf_8940756018561324816.plus.aac.p.m4a","art":"https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/a8/6b/d6/a86bd6e9-7245-717e-b360-150215875216/naynnama.jpg/100x100bb.jpg"}];
+
+const DIFFS = [
+  { key: "easy", label: "Easy" },
+  { key: "medium", label: "Medium" },
+  { key: "hard", label: "Hard" },
+  { key: "expert", label: "Expert" },
+  { key: "impossible", label: "Impossible" },
+  { key: "all", label: "All" },
+];
+const HINTS = [
+  { len: 0.1, pts: 100 },
+  { len: 0.5, pts: 60 },
+  { len: 1, pts: 30 },
+  { len: 3, pts: 10 },
+];
+const LINES = {
+  ready: ["Ready when you are. Hit play!", "One tenth of a second. Good luck ♪", "Listen closely…", "I'd know this one anywhere. Would you?", "Okay, new song. No peeking!"],
+  right: ["Correct! You really know your Vocaloid ♪", "Yes!! That's the one!", "From 0.1 seconds?! Amazing!", "Perfect. Do you have absolute pitch?", "Easy for you, huh?"],
+  wrong: ["Out of tries! That was {t}.", "Aww. It was {t}.", "So close… it was {t}!", "Hehe, it was {t}."],
+  hint: ["A little longer? Okay ♪", "Here's a bit more.", "Fine, fine. Listen again!"],
+  giveup: ["It was {t}! Now you know ♪", "That one was {t}."],
+};
+
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pickLine = (k, song) => { const l = LINES[k]; return l[Math.floor(Math.random() * l.length)].replace("{t}", song ? song.t : ""); };
+const diffLabel = (k) => DIFFS.find((d) => d.key === k)?.label ?? k;
+
+const state = {
+  diff: DIFFS.some((d) => d.key === store.get("miku01.diff")) ? store.get("miku01.diff") : "easy",
+  bags: {},
+  song: null,
+  buffer: null,
+  offset: 0,
+  level: 0,
+  answered: false,
+  token: 0,
+  fails: 0,
+  wrong: [],
+  won: false,
+  score: 0,
+  streak: 0,
+  best: store.get("miku01.best", 0),
+  played: 0,
+  correct: 0,
+};
+
+/* ---------------- audio ---------------- */
+let ac = null;
+const audio = () => (ac ??= new (window.AudioContext || window.webkitAudioContext)());
+const cache = new Map();
+
+async function fetchBytes(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.arrayBuffer();
+}
+async function freshPreview(song) {
+  const r = await fetch(`https://itunes.apple.com/lookup?id=${song.id}&country=${song.c}`);
+  const j = await r.json();
+  return j.results?.[0]?.previewUrl ?? null;
+}
+const decode = (bytes) => new Promise((res, rej) => audio().decodeAudioData(bytes, res, rej));
+
+function load(song) {
+  if (cache.has(song.id)) {
+    const p = cache.get(song.id);
+    cache.delete(song.id);
+    cache.set(song.id, p);
+    return p;
+  }
+  const p = (async () => {
+    let bytes;
+    try { bytes = await fetchBytes(song.pv); }
+    catch (e) {
+      const url = await freshPreview(song);
+      if (!url) throw e;
+      song.pv = url;
+      bytes = await fetchBytes(url);
+    }
+    return decode(bytes);
+  })();
+  cache.set(song.id, p);
+  p.catch(() => cache.delete(song.id));
+  // decoded previews are ~10 MB each, so only keep a handful
+  while (cache.size > 5) {
+    const oldest = cache.keys().next().value;
+    if (oldest === state.song?.id) break;
+    cache.delete(oldest);
+  }
+  return p;
+}
+
+// pick a 0.1 s window that actually has sound in it
+function pickOffset(buf) {
+  const ch = buf.getChannelData(0), sr = buf.sampleRate, win = Math.floor(sr * 0.1);
+  const hi = Math.max(0.2, buf.duration - 3.4), lo = Math.min(1.2, hi);
+  let best = lo, bestRms = -1;
+  for (let i = 0; i < 40; i++) {
+    const t = lo + Math.random() * (hi - lo);
+    const s0 = Math.floor(t * sr);
+    let sum = 0;
+    for (let j = 0; j < win; j += 4) { const v = ch[s0 + j] || 0; sum += v * v; }
+    const rms = Math.sqrt(sum / (win / 4));
+    if (rms > 0.06) return t;
+    if (rms > bestRms) { bestRms = rms; best = t; }
+  }
+  return best;
+}
+
+let current = null;
+let raf = 0;
+function stopAudio() {
+  if (current) { try { current.src.stop(); } catch {} current = null; }
+  cancelAnimationFrame(raf);
+  lane.classList.remove("listening");
+}
+function play(len, from = state.offset) {
+  if (!state.buffer) return;
+  const a = audio();
+  if (a.state === "suspended") a.resume();
+  stopAudio();
+  len = Math.max(0.05, Math.min(len, state.buffer.duration - from));
+  const src = a.createBufferSource();
+  src.buffer = state.buffer;
+  const g = a.createGain();
+  const t0 = a.currentTime + 0.03;
+  const fade = Math.min(0.005, len / 8);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(1, t0 + fade);
+  g.gain.setValueAtTime(1, t0 + len - fade);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  src.connect(g);
+  g.connect(a.destination);
+  src.start(t0, from, len + 0.01);
+  current = { src, t0, len, from };
+  src.onended = () => {
+    if (current?.src !== src) return;
+    current = null;
+    lane.classList.remove("listening");
+    drawScope(1);
+  };
+  renderWave(from, len);
+  lane.classList.remove("listening");
+  void lane.offsetWidth;
+  lane.classList.add("listening");
+  playBtn.classList.remove("on");
+  void playBtn.offsetWidth;
+  playBtn.classList.add("on");
+  const tick = () => {
+    if (!current || current.src !== src) return;
+    const p = Math.max(0, Math.min(1, (a.currentTime - t0) / len));
+    drawScope(p);
+    if (p < 1) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+/* ---------------- scope ---------------- */
+const scope = $("#scope");
+const sctx = scope.getContext("2d");
+const waveCanvas = document.createElement("canvas");
+const waveLit = document.createElement("canvas");
+const waveDim = document.createElement("canvas");
+let wave = null; // { from, len }
+const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function sizeScope() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(scope.clientWidth * dpr));
+  const h = Math.max(1, Math.round(scope.clientHeight * dpr));
+  if (scope.width !== w || scope.height !== h) { scope.width = w; scope.height = h; }
+  if (wave) renderWave(wave.from, wave.len); else drawScope(0);
+}
+function renderWave(from, len) {
+  wave = { from, len };
+  const w = scope.width, h = scope.height;
+  waveCanvas.width = w; waveCanvas.height = h;
+  const x = waveCanvas.getContext("2d");
+  x.clearRect(0, 0, w, h);
+  if (!state.buffer) return;
+  const ch = state.buffer.getChannelData(0), sr = state.buffer.sampleRate;
+  const s0 = Math.floor(from * sr), n = Math.max(1, Math.floor(len * sr));
+  let peak = 0.0001;
+  for (let j = 0; j < n; j++) { const v = Math.abs(ch[s0 + j] || 0); if (v > peak) peak = v; }
+  const gain = Math.min(4, 0.86 / peak);
+  const per = n / w, mid = h / 2;
+  x.fillStyle = "#fff";
+  for (let i = 0; i < w; i++) {
+    const a0 = s0 + Math.floor(i * per), a1 = Math.max(a0 + 1, s0 + Math.floor((i + 1) * per));
+    let mn = 1, mx = -1;
+    for (let j = a0; j < a1; j++) { const v = ch[j] || 0; if (v < mn) mn = v; if (v > mx) mx = v; }
+    const y1 = mid - mx * gain * mid, y2 = mid - mn * gain * mid;
+    x.fillRect(i, y1, 1, Math.max(1, y2 - y1));
+  }
+  // two pre-colored copies: played part in teal, the rest faded
+  for (const [c, color] of [[waveLit, cssVar("--scope-wave")], [waveDim, cssVar("--scope-dim")]]) {
+    c.width = w; c.height = h;
+    const cx = c.getContext("2d");
+    cx.drawImage(waveCanvas, 0, 0);
+    cx.globalCompositeOperation = "source-in";
+    cx.fillStyle = color;
+    cx.fillRect(0, 0, w, h);
+  }
+  $("#scopeLen").textContent = len < 1 ? `${Math.round(len * 1000)} ms` : `${len.toFixed(1)} s`;
+  $("#scopeCap").textContent = len <= 0.11 ? "Your 0.1 s, every sample" : "Waveform";
+  drawScope(0);
+}
+function drawScope(progress) {
+  const w = scope.width, h = scope.height;
+  sctx.clearRect(0, 0, w, h);
+  sctx.fillStyle = cssVar("--scope-mid");
+  sctx.fillRect(0, Math.floor(h / 2), w, Math.max(1, Math.round(window.devicePixelRatio || 1)));
+  if (!wave) return;
+  const px = Math.round(w * progress);
+  sctx.drawImage(waveDim, 0, 0);
+  if (px > 0) sctx.drawImage(waveLit, 0, 0, px, h, 0, 0, px, h);
+  if (progress > 0 && progress < 1) {
+    sctx.fillStyle = cssVar("--pink");
+    sctx.fillRect(px - 1, 0, Math.max(2, Math.round(window.devicePixelRatio || 1) * 2), h);
+  }
+}
+new ResizeObserver(sizeScope).observe(scope);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => {
+  if (wave) { renderWave(wave.from, wave.len); drawScope(1); } else drawScope(0);
+});
+
+/* ---------------- game ---------------- */
+const lane = $("#lane");
+const playBtn = $("#play");
+const input = $("#guessInput");
+const field = $("#field");
+const suggestEl = $("#suggest");
+const revealEl = $("#reveal");
+const finePointer = window.matchMedia("(pointer: fine)").matches;
+const hintsEl = $("#hints");
+
+const poolFor = (d) => SONGS.filter((s) => !s.failed && (d === "all" || s.d === d));
+
+function draw(d) {
+  let bag = (state.bags[d] || []).filter((s) => !s.failed);
+  if (!bag.length) {
+    bag = shuffle(poolFor(d));
+    const last = bag.length - 1;
+    if (last > 0 && bag[last] === state.song) [bag[0], bag[last]] = [bag[last], bag[0]];
+  }
+  state.bags[d] = bag;
+  return bag.pop();
+}
+function preloadNext() {
+  const bag = state.bags[state.diff];
+  const nxt = bag && bag[bag.length - 1];
+  if (nxt) load(nxt).catch(() => {});
+}
+/* ---------------- autocomplete ---------------- */
+// suggestions always search every song, so the box never gives away the difficulty pool
+const norm = (s) => (s || "").normalize("NFKC").toLowerCase().replace(/[\s\-_.,!?:;'’"・、。☆★♣∞&×()\[\]\/〜~@*]/g, "");
+SONGS.forEach((s) => {
+  s.k = [norm(s.t), norm(s.jp), norm(s.p)];
+  s.w = s.t.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(norm);
+});
+let matches = [];
+let active = -1;
+
+function search(q) {
+  const n = norm(q);
+  if (!n) return [];
+  const out = [];
+  for (const s of SONGS) {
+    if (state.wrong.includes(s)) continue;
+    const [t, jp, p] = s.k;
+    const score =
+      t.startsWith(n) ? 0 :
+      jp.startsWith(n) ? 1 :
+      s.w.some((w) => w.startsWith(n)) ? 2 :
+      p.startsWith(n) ? 3 :
+      t.includes(n) ? 4 :
+      jp.includes(n) ? 5 :
+      p.includes(n) ? 6 : -1;
+    if (score >= 0) out.push([score, s]);
+  }
+  out.sort((a, b) => a[0] - b[0] || a[1].t.localeCompare(b[1].t));
+  return out.map((x) => x[1]);
+}
+function openSuggest() {
+  matches = search(input.value);
+  active = matches.length ? 0 : -1;
+  renderSuggest();
+}
+function closeSuggest() {
+  suggestEl.hidden = true;
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+}
+function renderSuggest() {
+  if (!input.value.trim() || state.answered) return closeSuggest();
+  suggestEl.innerHTML = "";
+  if (!matches.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "No song by that name in here. Try the producer or the Japanese title.";
+    suggestEl.appendChild(li);
+  }
+  matches.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.className = "opt";
+    li.id = "opt-" + i;
+    li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", String(i === active));
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    if (s.art) img.src = s.art;
+    const t = document.createElement("span");
+    t.className = "t";
+    t.textContent = s.t;
+    const sub = document.createElement("span");
+    sub.className = "s";
+    sub.textContent = `${s.jp !== s.t ? s.jp + " · " : ""}${s.p}`;
+    li.append(img, t, sub);
+    li.addEventListener("pointerdown", (e) => e.preventDefault()); // keep focus in the box
+    li.addEventListener("pointermove", () => { if (active !== i) setActive(i, false); });
+    li.addEventListener("click", () => guess(s));
+    suggestEl.appendChild(li);
+  });
+  suggestEl.hidden = false;
+  suggestEl.scrollTop = 0;
+  input.setAttribute("aria-expanded", "true");
+  if (active >= 0) input.setAttribute("aria-activedescendant", "opt-" + active);
+}
+function setActive(i, scroll = true) {
+  if (!matches.length) return;
+  active = (i + matches.length) % matches.length;
+  suggestEl.querySelectorAll(".opt").forEach((li, j) => li.setAttribute("aria-selected", String(j === active)));
+  input.setAttribute("aria-activedescendant", "opt-" + active);
+  if (scroll) suggestEl.children[active]?.scrollIntoView({ block: "nearest" });
+}
+
+function guess(song) {
+  if (state.answered || !state.buffer || !song) return;
+  input.value = "";
+  closeSuggest();
+  if (song === state.song) return finish(true);
+  state.wrong.push(song);
+  field.classList.remove("shake");
+  void field.offsetWidth;
+  field.classList.add("shake");
+  if (state.level < HINTS.length - 1) {
+    state.level++;
+    say(`Not "${song.t}"! Here's ${HINTS[state.level].len}s ♪`, "sad");
+    renderHints();
+    renderStatus();
+    setPlay("ready");
+    play(HINTS[state.level].len);
+  } else {
+    finish(false);
+  }
+}
+function renderGuess() {
+  const left = state.answered && !state.won ? 0 : HINTS.length - state.level;
+  $("#pips").innerHTML = HINTS.map((_, i) => `<i class="${i < left ? "" : "gone"}"></i>`).join("");
+  $("#triesTxt").textContent = state.answered
+    ? (state.won ? "Got it!" : "Round over")
+    : `${left} ${left === 1 ? "try" : "tries"} left`;
+  const wl = $("#wrongList");
+  wl.innerHTML = "";
+  for (const s of state.wrong) {
+    const c = document.createElement("span");
+    c.className = "wrong-chip";
+    c.textContent = s.t;
+    wl.appendChild(c);
+  }
+  input.disabled = state.answered;
+  input.placeholder = state.answered ? "Hit Next song for another one" : "Type a song, producer, or 日本語 title";
+}
+
+function say(text, mood = "") {
+  $("#bubble").textContent = text;
+  lane.classList.toggle("happy", mood === "happy");
+  lane.classList.toggle("sad", mood === "sad");
+}
+let toastTimer = 0;
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+
+function newRound() {
+  stopAudio();
+  const token = ++state.token;
+  const pool = poolFor(state.diff);
+  if (pool.length < 1) return showError();
+  $("#errorBox").hidden = true;
+  state.answered = false;
+  state.level = 0;
+  state.buffer = null;
+  wave = null;
+  const song = draw(state.diff);
+  state.song = song;
+  state.wrong = [];
+  state.won = false;
+  input.value = "";
+  closeSuggest();
+  revealEl.hidden = true;
+  renderHints();
+  renderStatus();
+  drawScope(0);
+  $("#scopeLen").textContent = "";
+  $("#scopeCap").textContent = "Waveform";
+  setPlay("loading");
+  say("Tuning up…");
+  load(song).then((buf) => {
+    if (token !== state.token) return;
+    state.fails = 0;
+    state.buffer = buf;
+    state.offset = pickOffset(buf);
+    setPlay("ready");
+    renderHints();
+    say(pickLine("ready"));
+    if (finePointer) input.focus({ preventScroll: true });
+    preloadNext();
+  }).catch(() => {
+    if (token !== state.token) return;
+    song.failed = true;
+    state.fails++;
+    if (state.fails >= 4) return showError();
+    toast(`Couldn't load "${song.t}". Rolling a different song.`);
+    newRound();
+  });
+}
+function showError() {
+  stopAudio();
+  setPlay("loading");
+  $("#errorBox").hidden = false;
+  say("I can't reach the music right now…", "sad");
+}
+
+function setPlay(s) {
+  playBtn.dataset.state = s;
+  playBtn.disabled = s === "loading";
+  $("#playLbl").textContent = s === "loading" ? "Loading" : `Play ${HINTS[state.level].len}s`;
+}
+
+function renderDiffs() {
+  const nav = $("#diffs");
+  nav.innerHTML = "";
+  for (const d of DIFFS) {
+    const b = document.createElement("button");
+    b.className = "diff";
+    b.dataset.d = d.key;
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(d.key === state.diff));
+    b.innerHTML = `${d.label} <span class="n">${poolFor(d.key).length}</span>`;
+    b.addEventListener("click", () => {
+      state.diff = d.key;
+      store.set("miku01.diff", d.key);
+      renderDiffs();
+      newRound();
+    });
+    nav.appendChild(b);
+  }
+}
+function renderHints() {
+  hintsEl.querySelectorAll(".hint").forEach((n) => n.remove());
+  HINTS.forEach((h, i) => {
+    const b = document.createElement("button");
+    b.className = "hint" + (i < state.level ? " used" : "");
+    b.setAttribute("aria-pressed", String(i === state.level));
+    b.disabled = !state.buffer;
+    b.innerHTML = `${h.len}s <small>${state.answered ? "" : h.pts + " pts"}</small>`;
+    b.title = i === 0 ? "The real challenge" : "Longer clip, fewer points, one less try";
+    b.addEventListener("click", () => {
+      if (!state.answered && i > state.level) {
+        state.level = i;
+        say(pickLine("hint"));
+      } else if (state.answered) {
+        state.level = i;
+      } else if (i < state.level) {
+        // already unlocked a longer clip: replaying a shorter one is free but doesn't refund points
+        play(h.len);
+        return;
+      }
+      renderHints();
+      renderStatus();
+      setPlay("ready");
+      play(h.len);
+    });
+    hintsEl.appendChild(b);
+  });
+}
+function renderStatus() {
+  $("#lcdClip").textContent = HINTS[state.level].len.toFixed(3) + "s";
+  $("#lcdRound").textContent = String(state.played + (state.answered ? 0 : 1)).padStart(3, "0");
+  $("#lcdScore").textContent = String(state.score).padStart(5, "0");
+  $("#lcdStreak").textContent = String(state.streak).padStart(2, "0");
+  $("#stCorrect").textContent = state.correct;
+  $("#stPlayed").textContent = state.played;
+  $("#stBest").textContent = state.best;
+  $("#stPool").textContent = poolFor(state.diff).length;
+  renderGuess();
+}
+
+function finish(ok, gaveUp = false) {
+  if (state.answered || !state.song || !state.buffer) return;
+  state.answered = true;
+  state.won = ok;
+  const song = state.song;
+  state.played++;
+  let gained = 0;
+  if (ok) {
+    state.correct++;
+    state.streak++;
+    gained = HINTS[state.level].pts + (state.streak - 1) * 10;
+    state.score += gained;
+    if (state.streak > state.best) { state.best = state.streak; store.set("miku01.best", state.best); }
+  } else {
+    state.streak = 0;
+  }
+  closeSuggest();
+  revealEl.hidden = false;
+  revealEl.classList.toggle("miss", !ok);
+  $("#rVerdict").textContent = ok
+    ? `Correct at ${HINTS[state.level].len}s · +${gained}${state.streak > 1 ? ` (streak ×${state.streak})` : ""}`
+    : gaveUp ? "Gave up" : "Out of tries";
+  $("#rTitle").textContent = song.t;
+  $("#rJp").textContent = song.jp !== song.t ? song.jp : "";
+  $("#rProd").textContent = song.p;
+  const chip = $("#rChip");
+  chip.textContent = diffLabel(song.d);
+  chip.style.setProperty("--c", `var(--d-${song.d})`);
+  const art = $("#rArt");
+  art.src = song.art ? song.art.replace(/\/\d+x\d+bb\./, "/300x300bb.") : "";
+  art.alt = `Cover art for ${song.t}`;
+  const m = Math.floor(state.offset / 60), sec = (state.offset % 60).toFixed(2).padStart(5, "0");
+  $("#rClip").textContent = `Your clip started at ${m}:${sec} of the 30-second preview.`;
+  $("#rLink").href = `https://music.apple.com/${song.c}/song/${song.id}`;
+
+  if (ok) say(pickLine("right"), "happy");
+  else say(pickLine(gaveUp ? "giveup" : "wrong", song), "sad");
+  renderHints();
+  renderStatus();
+  $("#next").focus({ preventScroll: true });
+}
+
+/* ---------------- wiring ---------------- */
+playBtn.addEventListener("click", () => play(HINTS[state.level].len));
+$("#reroll").addEventListener("click", newRound);
+$("#next").addEventListener("click", newRound);
+$("#giveup").addEventListener("click", () => finish(false, true));
+$("#hear").addEventListener("click", () => play(5, Math.max(0, state.offset - 0.4)));
+$("#retry").addEventListener("click", () => {
+  SONGS.forEach((s) => { delete s.failed; });
+  state.fails = 0;
+  state.bags = {};
+  renderDiffs();
+  newRound();
+});
+input.addEventListener("input", openSuggest);
+input.addEventListener("focus", () => { if (input.value.trim()) openSuggest(); });
+input.addEventListener("blur", closeSuggest);
+input.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (suggestEl.hidden) openSuggest(); else setActive(active + 1);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    setActive(active - 1);
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (!suggestEl.hidden && active >= 0) guess(matches[active]);
+  } else if (e.key === "Escape") {
+    closeSuggest();
+  } else if (e.code === "Space" && !input.value) {
+    // nothing typed yet, so space replays the clip instead of typing a blank
+    e.preventDefault();
+    if (!playBtn.disabled) play(HINTS[state.level].len);
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest("input, textarea, select")) return;
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (!playBtn.disabled) play(HINTS[state.level].len);
+  } else if (e.key === "Enter" && state.answered && e.target === document.body) {
+    newRound();
+  } else if (e.key.length === 1 && !state.answered) {
+    // start typing anywhere and the letter lands in the guess box
+    input.focus({ preventScroll: true });
+  }
+});
+
+renderDiffs();
+sizeScope();
+newRound();
+</script>
+</body>
+</html>
